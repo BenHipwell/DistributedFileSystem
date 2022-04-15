@@ -2,12 +2,10 @@ import java.util.ArrayList;
 
 public class IndexEntry {
     
-    private String fileLocation;
     private ArrayList<Dstore> dstores;
     private IndexEntryStatus status;
 
-    public IndexEntry(String fileLocation){
-        this.fileLocation = fileLocation;
+    public IndexEntry(){
 
         dstores = new ArrayList<>();
         status = IndexEntryStatus.STORE_IN_PROGRESS;

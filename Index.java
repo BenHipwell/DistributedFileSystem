@@ -10,8 +10,8 @@ public class Index {
         index = new ConcurrentHashMap<>();
     }
 
-    public void addNewEntry(String fileName, String fileLocation){
-        index.put(fileName, new IndexEntry(fileLocation));
+    public void addNewEntry(String fileName){
+        index.put(fileName, new IndexEntry());
     }
 
     public ArrayList<String> getReadyFilenames(){
