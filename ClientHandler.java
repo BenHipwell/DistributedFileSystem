@@ -3,15 +3,21 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class ClientHandler extends Thread {
     private Socket clientSocket;
+    private Controller controller;
     private PrintWriter out;
     private BufferedReader in;
 
-    public ClientHandler(Socket clientSocket){
+    private boolean closed;
+
+    public ClientHandler(Socket clientSocket, Controller controller){
         System.out.println("Starting client socket");
         this.clientSocket = clientSocket;
+        this.controller = controller;
+        closed = false;
     }
 
     public void run(){
@@ -19,15 +25,37 @@ public class ClientHandler extends Thread {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
+
             String inputLine;
 
-            while ((inputLine = in.readLine()) != null){
-                if (".".equals(inputLine)){
-                    out.println("bye");
-                    break;
-                }
-                out.println(inputLine);
+            if ((inputLine = in.readLine()) != null){
+                // out.println(inputLine);
+                System.out.println("SYSTEM: RECEIEVED = " + inputLine);
+                String response = interpretInput(inputLine);
+                System.out.println("SYSTEM: SENDING = " + response);
+                out.println(response);
             }
+
+            // in.lines().forEach(line -> {
+            //     System.out.println("SYSTEM: RECEIVING");
+            //     out.println(line);
+            //     System.out.println("SYSTEM: RECEIEVED = " + line);
+            // });
+
+            // while (!closed){
+            //     String inputLine;
+            //     if ((inputLine = in.readLine()) != null){
+            //         System.out.println("SYSTEM: RECEIVING");
+            //         if (".".equals(inputLine)){
+            //             out.println("bye");
+            //             break;
+            //         }
+            //         out.println(inputLine);
+            //         System.out.println("SYSTEM: RECEIEVED = " + inputLine);
+            //     }   
+            // }
+            
+            System.out.println("SYSTEM: CLOSING");
 
             in.close();
             out.close();
@@ -37,6 +65,32 @@ public class ClientHandler extends Thread {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+    
     }
+
+    private String interpretInput(String input){
+        
+        String[] words = input.split(" ");
+        String response = "";
+
+        if (words[0].equals("STORE") && words.length == 3){
+            String fileName = words[1];
+            String fileSize = words[2];
+
+            ArrayList<Integer> DstorePorts = controller.handleStoreRequest(fileName);
+            
+            response = "STORE_TO ";
+            for (Integer port : DstorePorts){
+                response = response + " " + port;
+            }
+        } 
+        else {
+            //Handle invalid request
+            return "";
+        }
+        return response;
+    }
+
+
 
 }
