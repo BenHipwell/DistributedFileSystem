@@ -24,36 +24,19 @@ public class ClientHandler extends Thread {
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            
+            while(!closed){
 
+                String inputLine;
 
-            String inputLine;
-
-            if ((inputLine = in.readLine()) != null){
-                // out.println(inputLine);
-                System.out.println("SYSTEM: RECEIEVED = " + inputLine);
-                String response = interpretInput(inputLine);
-                System.out.println("SYSTEM: SENDING = " + response);
-                out.println(response);
+                if ((inputLine = in.readLine()) != null){
+                    // out.println(inputLine);
+                    System.out.println("SYSTEM: RECEIEVED = " + inputLine);
+                    String response = interpretInput(inputLine);
+                    System.out.println("SYSTEM: SENDING = " + response);
+                    out.println(response);
+                }
             }
-
-            // in.lines().forEach(line -> {
-            //     System.out.println("SYSTEM: RECEIVING");
-            //     out.println(line);
-            //     System.out.println("SYSTEM: RECEIEVED = " + line);
-            // });
-
-            // while (!closed){
-            //     String inputLine;
-            //     if ((inputLine = in.readLine()) != null){
-            //         System.out.println("SYSTEM: RECEIVING");
-            //         if (".".equals(inputLine)){
-            //             out.println("bye");
-            //             break;
-            //         }
-            //         out.println(inputLine);
-            //         System.out.println("SYSTEM: RECEIEVED = " + inputLine);
-            //     }   
-            // }
             
             System.out.println("SYSTEM: CLOSING");
 
