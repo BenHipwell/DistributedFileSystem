@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -16,6 +17,8 @@ public class Dstore {
 
     private ArrayList<String> fileNames;
 
+    private Index index;
+
     public void main(String[] args){
         if (args.length == 4){
             new Dstore(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Double.parseDouble(args[2]), args[3]);
@@ -31,15 +34,19 @@ public class Dstore {
         fileNames = new ArrayList<>();
         initFolder();
 
+        this.index = new Index();
 
         try {
-            clientServerSocket = new ServerSocket(cport);
+            clientServerSocket = new ServerSocket(port);
             System.out.println("Server socket open: " + !clientServerSocket.isClosed());
+
+            controllerSocket = new Socket(InetAddress.getLoopbackAddress(), this.cport);
 
             Runtime.getRuntime().addShutdownHook(new Thread((new Runnable() {
                 public void run(){
                     try {
                         clientServerSocket.close();
+                        controllerSocket.close();
                     } catch (IOException e) {
                         // TODO Auto-generated catch block
                         System.out.println("Error thrown on closing server socket");
@@ -48,12 +55,30 @@ public class Dstore {
                 }
             })));
             
-            // startClientServerSocket();
+            startClientServerSocket();
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
+    }
+
+    public void startClientServerSocket(){
+        System.out.println("Starting");
+        while (true){
+            //add: if num of dstores >= rFactor
+            try {
+                DstoreClientHandler dstoreClientHandler = new DstoreClientHandler(clientServerSocket.accept(), this);
+                dstoreClientHandler.start();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void beginStore(String fileName){
+        index.addDstoreToFile(fileName, this);
     }
 
     public String getFolderName(){
@@ -74,4 +99,5 @@ public class Dstore {
             folderPath.mkdirs();
         }
     }
+
 }

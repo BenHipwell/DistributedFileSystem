@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 
-public class ClientHandler extends Thread {
+public class ControllerClientHandler extends Thread {
     private Socket clientSocket;
     private Controller controller;
     private PrintWriter out;
@@ -13,7 +13,7 @@ public class ClientHandler extends Thread {
 
     private boolean closed;
 
-    public ClientHandler(Socket clientSocket, Controller controller){
+    public ControllerClientHandler(Socket clientSocket, Controller controller){
         System.out.println("Starting client socket");
         this.clientSocket = clientSocket;
         this.controller = controller;
@@ -59,7 +59,11 @@ public class ClientHandler extends Thread {
         if (words[0].equals("STORE") && words.length == 3){
             String fileName = words[1];
             String fileSize = words[2];
-
+            
+            if (!controller.addNewFile(fileName)){
+                return "ERROR_FILE_ALREADY_EXISTS";
+            }
+            
             ArrayList<Integer> DstorePorts = controller.handleStoreRequest(fileName);
             
             response = "STORE_TO ";

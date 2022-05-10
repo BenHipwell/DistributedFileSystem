@@ -11,7 +11,7 @@ public class Controller {
     private int rebalance;
 
     private ServerSocket serverSocket;
-    private ArrayList<ClientHandler> clients;
+    private ArrayList<ControllerClientHandler> clients;
 
     private Index index;
 
@@ -59,7 +59,7 @@ public class Controller {
         while (true){
             //add: if num of dstores >= rFactor
             try {
-                ClientHandler clientHandler = new ClientHandler(serverSocket.accept(), this);
+                ControllerClientHandler clientHandler = new ControllerClientHandler(serverSocket.accept(), this);
                 clients.add(clientHandler);
                 clientHandler.start();
             } catch (IOException e) {
@@ -78,10 +78,14 @@ public class Controller {
         }
     }
 
+    public boolean addNewFile(String fileName){
+        return index.addNewEntry(fileName);
+    }
+
     public ArrayList<Integer> handleStoreRequest(String fileName){
         ArrayList<Integer> allocatedDstores = new ArrayList<>();
         
-        index.addNewEntry(fileName);
+        // index.addNewEntry(fileName);
         //allocate dstores
         //update index entry dstore list
 

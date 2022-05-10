@@ -6,8 +6,13 @@ public class IndexEntry {
     private IndexEntryStatus status;
 
     public IndexEntry(){
-
         dstores = new ArrayList<>();
+        status = IndexEntryStatus.STORE_IN_PROGRESS;
+    }
+
+    public IndexEntry(Dstore dstore){
+        dstores = new ArrayList<>();
+        dstores.add(dstore);
         status = IndexEntryStatus.STORE_IN_PROGRESS;
     }
 
@@ -17,6 +22,10 @@ public class IndexEntry {
 
     public boolean isAvailable(){
         return status == IndexEntryStatus.STORE_COMPLETE;
+    }
+
+    public void addDstore(Dstore dstore){
+        dstores.add(dstore);
     }
 
 }

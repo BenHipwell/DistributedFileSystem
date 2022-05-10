@@ -10,8 +10,24 @@ public class Index {
         index = new ConcurrentHashMap<>();
     }
 
-    public void addNewEntry(String fileName){
-        index.put(fileName, new IndexEntry());
+    public Boolean addNewEntry(String fileName){
+        if (!index.contains(fileName)){
+            index.put(fileName, new IndexEntry());
+            return true;
+        } else return false;
+    }
+
+    // public void addNewEntry(String fileName, Dstore dstore){
+    //     if (index.contains(fileName)){
+    //         index.get(fileName).addDstore(dstore);
+    //     } else {
+    //         index.put(fileName, new IndexEntry(dstore));
+
+    //     }
+    // }
+
+    public void addDstoreToFile(String fileName, Dstore dstore){
+        index.get(fileName).addDstore(dstore);
     }
 
     public ArrayList<String> getReadyFilenames(){
@@ -26,5 +42,10 @@ public class Index {
 
         return fileNames;
     }
+
+    public IndexEntry getEntry(String fileName){
+        return index.get(fileName);
+    }
+    
 
 }
