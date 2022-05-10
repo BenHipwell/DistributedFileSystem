@@ -1,5 +1,7 @@
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -20,7 +22,7 @@ public class DstoreClientHandler extends Thread {
     private int fileSize;
 
     public DstoreClientHandler(Socket clientSocket, Dstore dstore){
-        System.out.println("Starting client socket");
+        System.out.println("DSTORE SYSTEM: Starting client socket");
         this.clientSocket = clientSocket;
         this.dstore = dstore;
         closed = false;
@@ -37,14 +39,14 @@ public class DstoreClientHandler extends Thread {
 
                 if ((inputLine = in.readLine()) != null){
                     // out.println(inputLine);
-                    System.out.println("SYSTEM: RECEIEVED = " + inputLine);
+                    System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
                     String response = interpretInput(inputLine);
-                    System.out.println("SYSTEM: SENDING = " + response);
-                    out.println(response);
+                    System.out.println("DSTORE SYSTEM: SENDING = " + response);
+                    // out.println(response);
                 }
             }
             
-            System.out.println("SYSTEM: CLOSING");
+            System.out.println("DSTORE SYSTEM: CLOSING");
 
             in.close();
             out.close();
@@ -65,19 +67,50 @@ public class DstoreClientHandler extends Thread {
         if (words[0].equals("STORE") && words.length == 3){
             this.fileName = words[1];
             this.fileSize = Integer.parseInt(words[2]);
-
             data = new byte[fileSize];
-
-            dstore.beginStore(fileName);
+            // dstore.beginStore(fileName);
             response = "ACK";
+            out.println(response);
+            handleFile();
         }
 
 
         return response;
     }
 
-    private void handleFile(File file){
-        
+    private void handleFile(){
+
+        int bytesRead = 0;
+        int current = 0;
+
+        File file = new File(dstore.getFolderName() + "/" + fileName);
+
+        try {
+                BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file));
+
+                bytesRead = clientSocket.getInputStream().read(data,0,data.length);
+                current = bytesRead;
+
+                do {
+                    bytesRead = clientSocket.getInputStream().read(data,current,data.length-current);
+                    if (bytesRead >= 0){
+                        current += bytesRead;
+                    }
+                } while (bytesRead > -1);
+
+                outputStream.write(data,0,current);
+                outputStream.flush();
+                System.out.println("DSTORE SYSTEM: File  " + fileName + " downloaded");
+
+
+                outputStream.close();
+                clientSocket.close();
+
+        } catch (Exception e) {
+            //TODO: handle exception
+        }
+
+
     }
 
 }

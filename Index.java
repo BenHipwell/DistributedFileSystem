@@ -12,6 +12,7 @@ public class Index {
 
     public Boolean addNewEntry(String fileName){
         if (!index.contains(fileName)){
+            System.out.println("INDEX: Adding file: " + fileName);
             index.put(fileName, new IndexEntry());
             return true;
         } else return false;
@@ -27,6 +28,7 @@ public class Index {
     // }
 
     public void addDstoreToFile(String fileName, Dstore dstore){
+        if (index.contains(fileName))
         index.get(fileName).addDstore(dstore);
     }
 

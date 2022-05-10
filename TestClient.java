@@ -27,14 +27,26 @@ public class TestClient {
             socket = new Socket(InetAddress.getLoopbackAddress(), this.cport);
             this.out = new PrintWriter(this.socket.getOutputStream(), true);
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.out.println("STORE fileName1 420");
+            this.out.println("STORE fileName1 6969");
             System.out.println("SYSTEM: is connected?" + socket.isConnected());
             
-            String line;
+            String line = in.readLine();
+            System.out.println("SYSTEM: CLIENT RECEIVED " + line);
 
-            while ((line = in.readLine()) != null){
-                System.out.println("SYSTEM: CLIENT RECEIVED " + line);
-            }
+
+
+            this.cport = 1234;
+            socket = new Socket(InetAddress.getLoopbackAddress(), this.cport);
+            this.out = new PrintWriter(this.socket.getOutputStream(), true);
+            this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            this.out.println("STORE filename1 6969");
+
+            String line2 = in.readLine();
+            System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
+
+            // while ((line2 = in.readLine()) != null){
+            //     System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
+            // }
 
         } catch (Exception e) {
             e.printStackTrace();

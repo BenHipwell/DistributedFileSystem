@@ -14,7 +14,7 @@ public class ControllerClientHandler extends Thread {
     private boolean closed;
 
     public ControllerClientHandler(Socket clientSocket, Controller controller){
-        System.out.println("Starting client socket");
+        System.out.println("CONTROLLER SYSTEM: Starting client socket");
         this.clientSocket = clientSocket;
         this.controller = controller;
         closed = false;
@@ -31,14 +31,14 @@ public class ControllerClientHandler extends Thread {
 
                 if ((inputLine = in.readLine()) != null){
                     // out.println(inputLine);
-                    System.out.println("SYSTEM: RECEIEVED = " + inputLine);
+                    System.out.println("CONTROLLER SYSTEM: RECEIEVED = " + inputLine);
                     String response = interpretInput(inputLine);
-                    System.out.println("SYSTEM: SENDING = " + response);
+                    System.out.println("CONTROLLER SYSTEM: SENDING = " + response);
                     out.println(response);
                 }
             }
             
-            System.out.println("SYSTEM: CLOSING");
+            System.out.println("CONTROLLER SYSTEM: CLOSING");
 
             in.close();
             out.close();
@@ -63,10 +63,10 @@ public class ControllerClientHandler extends Thread {
             if (!controller.addNewFile(fileName)){
                 return "ERROR_FILE_ALREADY_EXISTS";
             }
-            
+
             ArrayList<Integer> DstorePorts = controller.handleStoreRequest(fileName);
             
-            response = "STORE_TO ";
+            response = "STORE_TO";
             for (Integer port : DstorePorts){
                 response = response + " " + port;
             }
@@ -77,6 +77,10 @@ public class ControllerClientHandler extends Thread {
         }
         return response;
     }
+
+    // private void handleStoreOperation(){
+
+    // }
 
 
 

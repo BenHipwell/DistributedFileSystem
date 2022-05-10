@@ -17,9 +17,7 @@ public class Dstore {
 
     private ArrayList<String> fileNames;
 
-    private Index index;
-
-    public void main(String[] args){
+    public static void main(String[] args){
         if (args.length == 4){
             new Dstore(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Double.parseDouble(args[2]), args[3]);
         }
@@ -33,8 +31,6 @@ public class Dstore {
 
         fileNames = new ArrayList<>();
         initFolder();
-
-        this.index = new Index();
 
         try {
             clientServerSocket = new ServerSocket(port);
@@ -77,9 +73,9 @@ public class Dstore {
         }
     }
 
-    public void beginStore(String fileName){
-        index.addDstoreToFile(fileName, this);
-    }
+    // public void beginStore(String fileName){
+    //     index.addDstoreToFile(fileName, this);
+    // }
 
     public String getFolderName(){
         return folderName;
