@@ -13,6 +13,8 @@ public class Controller {
     private ServerSocket serverSocket;
     private ArrayList<ControllerClientHandler> clients;
 
+    private ArrayList<Dstore> dstores;
+
     private Index index;
 
     public static void main(String[] args){
@@ -83,17 +85,44 @@ public class Controller {
     }
 
     public ArrayList<Integer> handleStoreRequest(String fileName){
-        ArrayList<Integer> allocatedDstores = new ArrayList<>();
+
+        ArrayList<Dstore> allocatedDstores = new ArrayList<>();
+        ArrayList<Integer> allocatedDstorePorts = new ArrayList<>();
+
+        try {
+            
+            
         
-        // index.addNewEntry(fileName);
-        //allocate dstores
-        //update index entry dstore list
+            // index.addNewEntry(fileName);
+            //allocate dstores
+            //update index entry dstore list
 
-        //temp
-        allocatedDstores.add(12346);
-        allocatedDstores.add(64321);
+            //temp
+            allocatedDstorePorts.add(12346);
+            allocatedDstorePorts.add(64321);
 
-        return allocatedDstores;
+        
+
+            return allocatedDstorePorts;
+
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            waitForDstoreAcks(allocatedDstores);
+        }
+        return allocatedDstorePorts;
+        
+    }
+
+    public void waitForDstoreAcks(ArrayList<Dstore> dstores){
+        //remember Dstores are in constant connection with controller already
+        //USE INDEX!!
+        //STORE_ACK from Controller-Dstore connection updates index
+        //Updating index then updates this somehow
+        //Stop waiting when all indexes match up to STORE request
+        //Then index -> store complete
+        //ControllerClientHandler -> STORE_COMPLETE
     }
 
 }

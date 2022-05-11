@@ -83,7 +83,7 @@ public class DstoreClientHandler extends Thread {
         int bytesRead = 0;
         int current = 0;
 
-        File file = new File(dstore.getFolderName() + "/" + fileName);
+        File file = new File(dstore.getFolderName() + File.separator + fileName);
 
         try {
                 BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file));
