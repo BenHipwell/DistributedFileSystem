@@ -11,6 +11,8 @@ public class ControllerClientHandler extends Thread {
     private PrintWriter out;
     private BufferedReader in;
 
+    int dstorePort = 0;
+
     private boolean closed;
 
     public ControllerClientHandler(Socket clientSocket, Controller controller){
@@ -43,9 +45,12 @@ public class ControllerClientHandler extends Thread {
             in.close();
             out.close();
             clientSocket.close();
+            if (dstorePort != 0){
+                controller.removeDstore(dstorePort);
+            }
+            this.interrupt();
 
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     
@@ -64,24 +69,33 @@ public class ControllerClientHandler extends Thread {
                 return "ERROR_FILE_ALREADY_EXISTS";
             }
 
-            ArrayList<Integer> DstorePorts = controller.handleStoreRequest(fileName);
+            ArrayList<Integer> DstorePorts = controller.handleStoreRequest(fileName, this);
             
             response = "STORE_TO";
             for (Integer port : DstorePorts){
                 response = response + " " + port;
             }
-        } 
-        else {
+        } else if (words[0].equals("DSTORE") && words.length == 2){
+            dstorePort = Integer.parseInt(words[1]);
+            controller.addDstore(dstorePort, this);
+        } else if (words[0].equals("STORE_ACK") && words.length == 2){
+            String fileName = words[1];
+            controller.dstoreAck(dstorePort, fileName);
+        } else {
             //Handle invalid request
             return "";
         }
         return response;
     }
 
+    public void sendStoreComplete(){
+        //if client, not dstore
+        if (dstorePort == 0){
+            this.out.println("STORE_COMPLETE");
+        }
+    }
     // private void handleStoreOperation(){
 
     // }
-
-
 
 }

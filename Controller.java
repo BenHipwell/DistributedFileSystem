@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Controller {
     
@@ -13,7 +15,8 @@ public class Controller {
     private ServerSocket serverSocket;
     private ArrayList<ControllerClientHandler> clients;
 
-    private ArrayList<Dstore> dstores;
+    private ConcurrentHashMap<Integer, ControllerClientHandler> portToStoreEnd;
+    private ConcurrentHashMap<String, StoreRequest> fileNameToStoreReq;
 
     private Index index;
 
@@ -31,7 +34,9 @@ public class Controller {
 
         index = new Index();
         clients = new ArrayList<>();
-            
+        portToStoreEnd = new ConcurrentHashMap<>();
+        fileNameToStoreReq = new ConcurrentHashMap<>();   
+        
             try {
                 serverSocket = new ServerSocket(cport);
                 System.out.println("Server socket open: " + !serverSocket.isClosed());
@@ -80,13 +85,20 @@ public class Controller {
         }
     }
 
+    public void addDstore(int port, ControllerClientHandler endpoint){
+        clients.remove(endpoint);
+        portToStoreEnd.put(port, endpoint);
+    }
+
+    public void removeDstore(int port){
+        portToStoreEnd.remove(port);
+    }
+
     public boolean addNewFile(String fileName){
         return index.addNewEntry(fileName);
     }
 
-    public ArrayList<Integer> handleStoreRequest(String fileName){
-
-        ArrayList<Dstore> allocatedDstores = new ArrayList<>();
+    public ArrayList<Integer> handleStoreRequest(String fileName, ControllerClientHandler clientEndpoint){
         ArrayList<Integer> allocatedDstorePorts = new ArrayList<>();
 
         try {
@@ -98,24 +110,31 @@ public class Controller {
             //update index entry dstore list
 
             //temp
-            allocatedDstorePorts.add(12346);
-            allocatedDstorePorts.add(64321);
+
+            for (Integer i : portToStoreEnd.keySet()){
+                allocatedDstorePorts.add(i);
+            }
+
+            // allocatedDstorePorts.add(12346);
+            // allocatedDstorePorts.add(64321);
 
         
+            fileNameToStoreReq.put(fileName, new StoreRequest(clientEndpoint, allocatedDstorePorts));
 
             return allocatedDstorePorts;
 
 
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            waitForDstoreAcks(allocatedDstores);
-        }
+        } 
+        // finally {
+        //     waitForDstoreAcks(allocatedDstorePorts);
+        // }
         return allocatedDstorePorts;
         
     }
 
-    public void waitForDstoreAcks(ArrayList<Dstore> dstores){
+    public void waitForDstoreAcks(ArrayList<Integer> dstores){
         //remember Dstores are in constant connection with controller already
         //USE INDEX!!
         //STORE_ACK from Controller-Dstore connection updates index
@@ -125,4 +144,20 @@ public class Controller {
         //ControllerClientHandler -> STORE_COMPLETE
     }
 
+    public void dstoreAck(int port, String fileName){
+        index.getEntry(fileName).addDstore(port);
+        checkStoreComplete(fileName);
+    }
+
+    private void checkStoreComplete(String fileName){
+        StoreRequest storeRequest = fileNameToStoreReq.get(fileName);
+        if (storeRequest.getDstorePorts() == index.getEntry(fileName).getDstorePorts()){
+            index.completeStore(fileName);
+            storeRequest.getClientEndpoint().sendStoreComplete();
+        }
+    }
+
+    public int getDstoreCount(){
+        return portToStoreEnd.size();
+    }
 }

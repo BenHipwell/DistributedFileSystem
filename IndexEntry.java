@@ -2,17 +2,17 @@ import java.util.ArrayList;
 
 public class IndexEntry {
     
-    private ArrayList<Dstore> dstores;
+    private ArrayList<Integer> dstorePorts;
     private IndexEntryStatus status;
 
     public IndexEntry(){
-        dstores = new ArrayList<>();
+        dstorePorts = new ArrayList<>();
         status = IndexEntryStatus.STORE_IN_PROGRESS;
     }
 
-    public IndexEntry(Dstore dstore){
-        dstores = new ArrayList<>();
-        dstores.add(dstore);
+    public IndexEntry(Integer dstorePort){
+        dstorePorts = new ArrayList<>();
+        dstorePorts.add(dstorePort);
         status = IndexEntryStatus.STORE_IN_PROGRESS;
     }
 
@@ -20,14 +20,22 @@ public class IndexEntry {
         this.status = newStatus;
     }
 
+    public void setComplete(){
+        status = IndexEntryStatus.STORE_COMPLETE;
+    }
+
     public boolean isAvailable(){
         return status == IndexEntryStatus.STORE_COMPLETE;
     }
 
-    public void addDstore(Dstore dstore){
-        dstores.add(dstore);
+    public void addDstore(Integer dstorePort){
+        dstorePorts.add(dstorePort);
     }
 
+    public ArrayList<Integer> getDstorePorts(){
+        return dstorePorts;
+    }
+    
 }
 
 enum IndexEntryStatus {

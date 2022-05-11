@@ -41,7 +41,7 @@ public class DstoreClientHandler extends Thread {
                     // out.println(inputLine);
                     System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
                     String response = interpretInput(inputLine);
-                    System.out.println("DSTORE SYSTEM: SENDING = " + response);
+                    // System.out.println("DSTORE SYSTEM: SENDING = " + response);
                     // out.println(response);
                 }
             }
@@ -65,12 +65,15 @@ public class DstoreClientHandler extends Thread {
         String response = "";
 
         if (words[0].equals("STORE") && words.length == 3){
+            System.out.println("DSTORE SYSTEM: STORE COMMAND DETECTED ");
+
             this.fileName = words[1];
             this.fileSize = Integer.parseInt(words[2]);
             data = new byte[fileSize];
             // dstore.beginStore(fileName);
-            response = "ACK";
-            out.println(response);
+            // response = "ACK";
+            System.out.println("DSTORE SYSTEM: Sending ACK");
+            out.println("ACK");
             handleFile();
         }
 
@@ -88,25 +91,28 @@ public class DstoreClientHandler extends Thread {
         try {
                 BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file));
 
-                bytesRead = clientSocket.getInputStream().read(data,0,data.length);
-                current = bytesRead;
+                // bytesRead = clientSocket.getInputStream().read(data,0,data.length);
+                // current = bytesRead;
 
                 do {
-                    bytesRead = clientSocket.getInputStream().read(data,current,data.length-current);
+                    bytesRead = clientSocket.getInputStream().read(data,current,fileSize-current);
                     if (bytesRead >= 0){
                         current += bytesRead;
                     }
-                } while (bytesRead > -1);
+                    System.out.println("DSTORE SYSTEM: Downloading file " + bytesRead + "/" + fileSize);
+                } while (bytesRead < fileSize);
 
                 outputStream.write(data,0,current);
                 outputStream.flush();
                 System.out.println("DSTORE SYSTEM: File  " + fileName + " downloaded");
 
+                dstore.sendStoreAck(fileName);
 
                 outputStream.close();
-                clientSocket.close();
+                this.closed = true;
 
         } catch (Exception e) {
+            e.printStackTrace();
             //TODO: handle exception
         }
 

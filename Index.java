@@ -27,9 +27,9 @@ public class Index {
     //     }
     // }
 
-    public void addDstoreToFile(String fileName, Dstore dstore){
+    public void addDstoreToFile(String fileName, Integer dstorePort){
         if (index.contains(fileName))
-        index.get(fileName).addDstore(dstore);
+        index.get(fileName).addDstore(dstorePort);
     }
 
     public ArrayList<String> getReadyFilenames(){
@@ -43,6 +43,10 @@ public class Index {
         }
 
         return fileNames;
+    }
+
+    public void completeStore(String fileName){
+        index.get(fileName).setComplete();
     }
 
     public IndexEntry getEntry(String fileName){

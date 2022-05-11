@@ -1,5 +1,8 @@
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -16,6 +19,9 @@ public class Dstore {
     private Socket controllerSocket;
 
     private ArrayList<String> fileNames;
+
+    private PrintWriter out;
+    private BufferedReader in;
 
     public static void main(String[] args){
         if (args.length == 4){
@@ -37,6 +43,11 @@ public class Dstore {
             System.out.println("Server socket open: " + !clientServerSocket.isClosed());
 
             controllerSocket = new Socket(InetAddress.getLoopbackAddress(), this.cport);
+
+            this.out = new PrintWriter(this.controllerSocket.getOutputStream(), true);
+            this.in = new BufferedReader(new InputStreamReader(controllerSocket.getInputStream()));
+
+            this.out.println("DSTORE" + " " + this.port);
 
             Runtime.getRuntime().addShutdownHook(new Thread((new Runnable() {
                 public void run(){
@@ -73,6 +84,10 @@ public class Dstore {
         }
     }
 
+    public void sendStoreAck(String fileName){
+        this.out.println("STORE_ACK " + fileName);
+    }
+
     // public void beginStore(String fileName){
     //     index.addDstoreToFile(fileName, this);
     // }
@@ -91,8 +106,11 @@ public class Dstore {
         if (!folderPath.isDirectory()){
             folderPath.mkdirs();
         } else {
-            folderPath.delete();
-            folderPath.mkdirs();
+            for (File f : folderPath.listFiles()){
+                f.delete();
+            }
+            // folderPath.delete();
+            // folderPath.mkdirs();
         }
     }
 
