@@ -2,6 +2,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetAddress;
@@ -53,27 +54,45 @@ public class TestClient {
                 }
 
                 for (Integer port : ports){
+                    
+                    Thread dstoreThread = new Thread(){
+                        public void run(){
+                            System.out.print("TESTCLIENT: Connecting to dstore with port: " + port);
+                            
+                            try {
+                                Socket dsocket;
+                                dsocket = new Socket(InetAddress.getLoopbackAddress(), port);
+                            
+                                PrintWriter out2 = new PrintWriter(dsocket.getOutputStream(), true);
+                                BufferedReader in2 = new BufferedReader(new InputStreamReader(dsocket.getInputStream()));
+                                out2.println("STORE fileName1 " + filesize);
 
-                    System.out.print("TESTCLIENT: Connecting to dstore with port: " + port);
+                                String line2 = in2.readLine();
+                                System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
 
-                    socket = new Socket(InetAddress.getLoopbackAddress(), port);
-                    this.out = new PrintWriter(this.socket.getOutputStream(), true);
-                    this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    this.out.println("STORE fileName1 " + filesize);
-
-                    String line2 = in.readLine();
-                    System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
-
-                    if (line2.equals("ACK")){
-                        BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
-                        input.read(data,0,data.length);
-                        System.out.println("TESTCLIENT: Sending file of size " + filesize);
-                        socket.getOutputStream().write(data,0,filesize);
-                        socket.getOutputStream().flush();
-                        System.out.println("TESTCLIENT: File sent");
-                        input.close();
-                    }
+                                if (line2.equals("ACK")){
+                                    BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
+                                    input.read(data,0,data.length);
+                                    System.out.println("TESTCLIENT: Sending file of size " + filesize);
+                                    dsocket.getOutputStream().write(data,0,filesize);
+                                    dsocket.getOutputStream().flush();
+                                    System.out.println("TESTCLIENT: File sent");
+                                    input.close();
+                                }
+                                out2.close();
+                                in2.close();
+                                dsocket.close();
+                                
+                            } catch (IOException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
+                        }
+                    };
+                    dstoreThread.start();
+                    
                 }
+                
             }
             
             // this.cport = 1234;
@@ -93,14 +112,15 @@ public class TestClient {
             // System.out.println("TESTCLIENT: File sent");
 
             // this.cport = 1234;
-            socket = new Socket(InetAddress.getLoopbackAddress(), this.cport);
-            this.out = new PrintWriter(this.socket.getOutputStream(), true);
-            this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            // socket = new Socket(InetAddress.getLoopbackAddress(), this.cport);
+            // this.out = new PrintWriter(this.socket.getOutputStream(), true);
+            // this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
             String line3 = in.readLine();
             System.out.println("SYSTEM: CLIENT RECEIVED " + line3);
 
             socket.close();
+            Thread.currentThread().interrupt();
             // while ((line2 = in.readLine()) != null){
             //     System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
             // }

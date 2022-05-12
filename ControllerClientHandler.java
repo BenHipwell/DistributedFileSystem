@@ -32,11 +32,8 @@ public class ControllerClientHandler extends Thread {
                 String inputLine;
 
                 if ((inputLine = in.readLine()) != null){
-                    // out.println(inputLine);
                     System.out.println("CONTROLLER SYSTEM: RECEIEVED = " + inputLine);
-                    String response = interpretInput(inputLine);
-                    System.out.println("CONTROLLER SYSTEM: SENDING = " + response);
-                    out.println(response);
+                    interpretInput(inputLine);
                 }
             }
             
@@ -56,46 +53,51 @@ public class ControllerClientHandler extends Thread {
     
     }
 
-    private String interpretInput(String input){
+    private void interpretInput(String input){
         
         String[] words = input.split(" ");
-        String response = "";
 
         if (words[0].equals("STORE") && words.length == 3){
-            String fileName = words[1];
-            String fileSize = words[2];
-            
-            if (!controller.addNewFile(fileName)){
-                return "ERROR_FILE_ALREADY_EXISTS";
-            }
+            handleStoreOperation(words);
 
-            ArrayList<Integer> DstorePorts = controller.handleStoreRequest(fileName, this);
-            
-            response = "STORE_TO";
-            for (Integer port : DstorePorts){
-                response = response + " " + port;
-            }
         } else if (words[0].equals("DSTORE") && words.length == 2){
             dstorePort = Integer.parseInt(words[1]);
             controller.addDstore(dstorePort, this);
+
         } else if (words[0].equals("STORE_ACK") && words.length == 2){
             String fileName = words[1];
             controller.dstoreAck(dstorePort, fileName);
+
         } else {
             //Handle invalid request
-            return "";
-        }
-        return response;
-    }
-
-    public void sendStoreComplete(){
-        //if client, not dstore
-        if (dstorePort == 0){
-            this.out.println("STORE_COMPLETE");
         }
     }
-    // private void handleStoreOperation(){
 
-    // }
+    private void handleStoreOperation(String[] words){
+        String fileName = words[1];
+        String fileSize = words[2];
+            
+        if (!controller.addNewFile(fileName)){
+            out.println("ERROR_FILE_ALREADY_EXISTS");
+        }
+
+        ArrayList<Integer> DstorePorts = controller.handleStoreRequest(fileName, this);
+            
+        String response = "STORE_TO";
+        for (Integer port : DstorePorts){
+            response = response + " " + port;
+        }
+
+        out.println(response);
+        synchronized (this){
+            try {
+                this.wait();
+                System.out.println("CONTROLLER: Sending store complete to client");
+                out.println("STORE_COMPLETE");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
 }

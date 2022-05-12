@@ -102,23 +102,15 @@ public class Controller {
         ArrayList<Integer> allocatedDstorePorts = new ArrayList<>();
 
         try {
-            
-            
-        
             // index.addNewEntry(fileName);
             //allocate dstores
             //update index entry dstore list
 
-            //temp
-
+            //temp allocating all dstores
             for (Integer i : portToStoreEnd.keySet()){
                 allocatedDstorePorts.add(i);
             }
 
-            // allocatedDstorePorts.add(12346);
-            // allocatedDstorePorts.add(64321);
-
-        
             fileNameToStoreReq.put(fileName, new StoreRequest(clientEndpoint, allocatedDstorePorts));
 
             return allocatedDstorePorts;
@@ -127,21 +119,8 @@ public class Controller {
         } catch (Exception e) {
             e.printStackTrace();
         } 
-        // finally {
-        //     waitForDstoreAcks(allocatedDstorePorts);
-        // }
         return allocatedDstorePorts;
         
-    }
-
-    public void waitForDstoreAcks(ArrayList<Integer> dstores){
-        //remember Dstores are in constant connection with controller already
-        //USE INDEX!!
-        //STORE_ACK from Controller-Dstore connection updates index
-        //Updating index then updates this somehow
-        //Stop waiting when all indexes match up to STORE request
-        //Then index -> store complete
-        //ControllerClientHandler -> STORE_COMPLETE
     }
 
     public void dstoreAck(int port, String fileName){
@@ -151,9 +130,23 @@ public class Controller {
 
     private void checkStoreComplete(String fileName){
         StoreRequest storeRequest = fileNameToStoreReq.get(fileName);
-        if (storeRequest.getDstorePorts() == index.getEntry(fileName).getDstorePorts()){
+
+        System.out.println("Store request dstores:");
+        for (Integer i : storeRequest.getDstorePorts()){
+            System.out.println(i);
+        }
+
+        System.out.println("Dstores added to index entry:");
+        for (Integer i : index.getEntry(fileName).getDstorePorts()){
+            System.out.println(i);
+        }
+
+        System.out.println("CONTROLLER: Checking if " + fileName + " storage is complete ");
+        if (storeRequest.getDstorePorts().equals(index.getEntry(fileName).getDstorePorts())){
             index.completeStore(fileName);
-            storeRequest.getClientEndpoint().sendStoreComplete();
+            synchronized (storeRequest.getClientEndpoint()){
+                storeRequest.getClientEndpoint().notify();
+            }
         }
     }
 
