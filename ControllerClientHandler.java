@@ -13,6 +13,8 @@ public class ControllerClientHandler extends Thread {
 
     int dstorePort = 0;
 
+    int dstoreIndex;
+
     private boolean closed;
 
     public ControllerClientHandler(Socket clientSocket, Controller controller){
@@ -20,6 +22,7 @@ public class ControllerClientHandler extends Thread {
         this.clientSocket = clientSocket;
         this.controller = controller;
         closed = false;
+        dstoreIndex = 0;
     }
 
     public void run(){
@@ -55,29 +58,41 @@ public class ControllerClientHandler extends Thread {
 
     private void interpretInput(String input){
         
-        String[] words = input.split(" ");
+        if (controller.enoughDstores()){
 
-        if (words[0].equals("STORE") && words.length == 3){
-            handleStoreOperation(words);
+            String[] words = input.split(" ");
 
-        } else if (words[0].equals("DSTORE") && words.length == 2){
-            dstorePort = Integer.parseInt(words[1]);
-            controller.addDstore(dstorePort, this);
+            if (words[0].equals("STORE") && words.length == 3){
+                handleStoreOperation(words);
 
-        } else if (words[0].equals("STORE_ACK") && words.length == 2){
-            String fileName = words[1];
-            controller.dstoreAck(dstorePort, fileName);
+            } else if (words[0].equals("LOAD") && words.length == 2){
+                handleLoadOperation(words);
 
+            } else if (words[0].equals("RELOAD") && words.length == 2){
+                dstoreIndex++;
+                handleLoadOperation(words);
+
+            } else if (words[0].equals("DSTORE") && words.length == 2){
+                dstorePort = Integer.parseInt(words[1]);
+                controller.addDstore(dstorePort, this);
+
+            } else if (words[0].equals("STORE_ACK") && words.length == 2){
+                String fileName = words[1];
+                controller.dstoreAck(dstorePort, fileName);
+
+            } else {
+                //Handle invalid request
+            }
         } else {
-            //Handle invalid request
+            out.println("ERROR_NOT_ENOUGH_DSTORES");
         }
     }
 
     private void handleStoreOperation(String[] words){
         String fileName = words[1];
-        String fileSize = words[2];
+        int fileSize = Integer.parseInt(words[2]);
             
-        if (!controller.addNewFile(fileName)){
+        if (!controller.addNewFile(fileName, fileSize)){
             out.println("ERROR_FILE_ALREADY_EXISTS");
         }
 
@@ -98,6 +113,19 @@ public class ControllerClientHandler extends Thread {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void handleLoadOperation(String[] words){
+        int port = controller.getDstoreStroringFile(words[1],dstoreIndex);
+
+        if (port == -1){
+            out.println("ERROR_FILE_DOES_NOT_EXIST");
+        } else if (port == -2){
+            out.println("ERROR_LOAD");
+        } else {
+            out.println("LOAD_FROM " + port + controller.getFileSize(words[1]));
+        }
+
     }
 
 }

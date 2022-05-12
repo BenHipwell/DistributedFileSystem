@@ -4,16 +4,19 @@ public class IndexEntry {
     
     private ArrayList<Integer> dstorePorts;
     private IndexEntryStatus status;
+    private int fileSize;
 
-    public IndexEntry(){
+    public IndexEntry(int fileSize){
         dstorePorts = new ArrayList<>();
         status = IndexEntryStatus.STORE_IN_PROGRESS;
+        this.fileSize = fileSize;
     }
 
-    public IndexEntry(Integer dstorePort){
+    public IndexEntry(Integer dstorePort, int fileSize){
         dstorePorts = new ArrayList<>();
         dstorePorts.add(dstorePort);
         status = IndexEntryStatus.STORE_IN_PROGRESS;
+        this.fileSize = fileSize;
     }
 
     public void setStatus(IndexEntryStatus newStatus){
@@ -34,6 +37,10 @@ public class IndexEntry {
 
     public ArrayList<Integer> getDstorePorts(){
         return dstorePorts;
+    }
+
+    public int getFileSize(){
+        return fileSize;
     }
     
 }

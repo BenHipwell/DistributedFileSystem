@@ -1,6 +1,8 @@
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,12 +16,12 @@ public class DstoreClientHandler extends Thread {
     private PrintWriter out;
     private BufferedReader in;
 
-    private byte[] data;
+    // private byte[] data;
 
     private boolean closed;
 
-    private String fileName;
-    private int fileSize;
+    // private String fileName;
+    // private int fileSize;
 
     public DstoreClientHandler(Socket clientSocket, Dstore dstore){
         System.out.println("DSTORE SYSTEM: Starting client socket");
@@ -67,21 +69,30 @@ public class DstoreClientHandler extends Thread {
         if (words[0].equals("STORE") && words.length == 3){
             System.out.println("DSTORE SYSTEM: STORE COMMAND DETECTED ");
 
-            this.fileName = words[1];
-            this.fileSize = Integer.parseInt(words[2]);
-            data = new byte[fileSize];
+            // this.fileName = words[1];
+            // this.fileSize = Integer.parseInt(words[2]);
             // dstore.beginStore(fileName);
             // response = "ACK";
             System.out.println("DSTORE SYSTEM: Sending ACK");
             out.println("ACK");
-            handleFile();
+            handleFile(words[1],Integer.parseInt(words[2]));
+
+        } else if (words[0].equals("LOAD_DATA") && words.length == 2){
+            System.out.println("DSTORE SYSTEM: LOAD COMMAND DETECTED ");
+
+            System.out.println("DSTORE SYSTEM: Sending file " + words[1]);
+            sendFile(words[1]);
+            
+            
         }
 
 
         return response;
     }
 
-    private void handleFile(){
+    private void handleFile(String fileName, int fileSize){
+
+        byte[] data = new byte[fileSize];
 
         int bytesRead = 0;
         int current = 0;
@@ -113,9 +124,31 @@ public class DstoreClientHandler extends Thread {
 
         } catch (Exception e) {
             e.printStackTrace();
-            //TODO: handle exception
+            this.interrupt();
         }
+    }
 
+    private void sendFile(String fileName){
+        File file = new File(dstore.getFolderName() + File.separator + fileName);
+        int filesize = (int) file.length();
+        byte[] data = new byte [filesize];
+
+        if (file.exists()){
+            try {
+
+                BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
+                input.read(data,0,data.length);
+                System.out.println("DSTORE: Sending file of size " + filesize);
+                clientSocket.getOutputStream().write(data,0,filesize);
+                clientSocket.getOutputStream().flush();
+                System.out.println("DSTORE: File sent");
+                input.close();
+                
+            } catch (IOException e) {
+                e.printStackTrace();
+                this.interrupt();
+            }
+        }
 
     }
 

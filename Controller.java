@@ -94,8 +94,8 @@ public class Controller {
         portToStoreEnd.remove(port);
     }
 
-    public boolean addNewFile(String fileName){
-        return index.addNewEntry(fileName);
+    public boolean addNewFile(String fileName, int fileSize){
+        return index.addNewEntry(fileName, fileSize);
     }
 
     public ArrayList<Integer> handleStoreRequest(String fileName, ControllerClientHandler clientEndpoint){
@@ -148,6 +148,36 @@ public class Controller {
                 storeRequest.getClientEndpoint().notify();
             }
         }
+    }
+
+    public int getDstoreStroringFile(String fileName, int dstoreIndex){
+        IndexEntry entry;
+        // try {
+        //     port = index.getEntry(fileName).getDstorePorts().get(dstoreIndex);
+        // } catch (Exception e){
+        //     port = -1;
+        // }
+        // return port;
+
+        try {
+                entry = index.getEntry(fileName);
+
+                if (dstoreIndex < entry.getDstorePorts().size()){
+                    return entry.getDstorePorts().get(dstoreIndex);
+                } else return -2;
+        
+        } catch (Exception e){
+                return -1;
+        }
+
+    }
+
+    public boolean enoughDstores(){
+        return portToStoreEnd.size() >= rFactor;
+    }
+
+    public int getFileSize(String fileName){
+        return index.getEntry(fileName).getFileSize();
     }
 
     public int getDstoreCount(){

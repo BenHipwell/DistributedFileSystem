@@ -10,10 +10,10 @@ public class Index {
         index = new ConcurrentHashMap<>();
     }
 
-    public Boolean addNewEntry(String fileName){
+    public Boolean addNewEntry(String fileName, int fileSize){
         if (!index.contains(fileName)){
             System.out.println("INDEX: Adding file: " + fileName);
-            index.put(fileName, new IndexEntry());
+            index.put(fileName, new IndexEntry(fileSize));
             return true;
         } else return false;
     }
