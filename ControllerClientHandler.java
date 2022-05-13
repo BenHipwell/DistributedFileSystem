@@ -11,7 +11,7 @@ public class ControllerClientHandler extends Thread {
     private PrintWriter out;
     private BufferedReader in;
 
-    int dstorePort = 0;
+    int dstorePort;
 
     int dstoreIndex;
 
@@ -22,6 +22,7 @@ public class ControllerClientHandler extends Thread {
         this.clientSocket = clientSocket;
         this.controller = controller;
         closed = false;
+        dstorePort = 0;
         dstoreIndex = 0;
     }
 

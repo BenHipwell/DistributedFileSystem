@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.swing.plaf.multi.MultiTableHeaderUI;
+
 public class Controller {
     
     private int cport;
@@ -84,6 +86,7 @@ public class Controller {
     public void addDstore(int port, ControllerClientHandler endpoint){
         clients.remove(endpoint);
         portToStoreEnd.put(port, endpoint);
+        rebalance();
     }
 
     public void removeDstore(int port){
@@ -209,4 +212,21 @@ public class Controller {
     public int getClientCount(){
         return clients.size();
     }
+
+
+    //-----------------------------------------------------------------------------------------------------------------------------------------------
+
+    private void rebalance(){
+        int minFiles = Math.floorDiv(rFactor, getDstoreCount());
+        int maxFiles = (int) Math.ceil((double) rFactor / getDstoreCount());
+
+        System.out.println("CONTROLLER: REBALANCING, min=" + minFiles + " max=" + maxFiles);
+
+        //use LIST
+        //round robin, create completely new organisation
+
+
+    }
+
+
 }
