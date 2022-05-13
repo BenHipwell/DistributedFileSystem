@@ -46,7 +46,11 @@ public class Index {
     }
 
     public void completeStore(String fileName){
-        index.get(fileName).setComplete();
+        index.get(fileName).setStoreComplete();
+    }
+
+    public void completeRemove(String fileName){
+        index.get(fileName).setRemoveComplete();
     }
 
     public IndexEntry getEntry(String fileName){

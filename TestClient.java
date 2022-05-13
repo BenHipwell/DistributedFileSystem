@@ -38,6 +38,28 @@ public class TestClient {
             socket = new Socket(InetAddress.getLoopbackAddress(), this.cport);
             this.out = new PrintWriter(this.socket.getOutputStream(), true);
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            
+            testStore(filesize, data, file);
+
+            out.println("REMOVE fileName1");
+
+            String line = in.readLine();
+            System.out.println("SYSTEM: CLIENT RECEIVED " + line);
+
+            socket.close();
+            Thread.currentThread().interrupt();
+            // while ((line2 = in.readLine()) != null){
+            //     System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
+            // }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            //TODO: handle exception
+        }
+    }
+
+    private void testStore(int filesize, byte[] data, File file){
+        try{
             this.out.println("STORE fileName1 " + filesize);
             System.out.println("SYSTEM: is connected?" + socket.isConnected());
             
@@ -118,16 +140,8 @@ public class TestClient {
 
             String line3 = in.readLine();
             System.out.println("SYSTEM: CLIENT RECEIVED " + line3);
-
-            socket.close();
-            Thread.currentThread().interrupt();
-            // while ((line2 = in.readLine()) != null){
-            //     System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
-            // }
-
         } catch (Exception e) {
             e.printStackTrace();
-            //TODO: handle exception
         }
     }
 

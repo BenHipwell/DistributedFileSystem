@@ -58,7 +58,7 @@ public class ControllerClientHandler extends Thread {
 
     private void interpretInput(String input){
         
-        if (controller.enoughDstores()){
+        // if (controller.enoughDstores()){
 
             String[] words = input.split(" ");
 
@@ -72,7 +72,7 @@ public class ControllerClientHandler extends Thread {
                 dstoreIndex++;
                 handleLoadOperation(words);
 
-            } else if (words[0].equals("DSTORE") && words.length == 2){
+            } else if (words[0].equals("DSTORE") && words.length == 2){ //connecting dstore
                 dstorePort = Integer.parseInt(words[1]);
                 controller.addDstore(dstorePort, this);
 
@@ -80,12 +80,19 @@ public class ControllerClientHandler extends Thread {
                 String fileName = words[1];
                 controller.dstoreAck(dstorePort, fileName);
 
+            } else if (words[0].equals("REMOVE") && words.length == 2){
+                handleRemoveOperation(words);
+
+            } else if (words[0].equals("REMOVE_ACK") && words.length == 2){
+                String fileName = words[1];
+                controller.removeAck(dstorePort, fileName);
+
             } else {
                 //Handle invalid request
             }
-        } else {
-            out.println("ERROR_NOT_ENOUGH_DSTORES");
-        }
+        // } else {
+        //     out.println("ERROR_NOT_ENOUGH_DSTORES");
+        // }
     }
 
     private void handleStoreOperation(String[] words){
@@ -104,15 +111,15 @@ public class ControllerClientHandler extends Thread {
         }
 
         out.println(response);
-        synchronized (this){
-            try {
-                this.wait();
-                System.out.println("CONTROLLER: Sending store complete to client");
-                out.println("STORE_COMPLETE");
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        // synchronized (this){
+        //     try {
+        //         this.wait();
+        //         System.out.println("CONTROLLER: Sending store complete to client");
+        //         out.println("STORE_COMPLETE");
+        //     } catch (InterruptedException e) {
+        //         e.printStackTrace();
+        //     }
+        // }
     }
 
     private void handleLoadOperation(String[] words){
@@ -128,4 +135,22 @@ public class ControllerClientHandler extends Thread {
 
     }
 
+    private void handleRemoveOperation(String[] words){
+        String fileName = words[1];
+        controller.removeFile(fileName, this);
+
+    }
+
+    synchronized public void sendRemoveToDstore(String fileName){
+        System.out.println("CONTROLLER: SENDING REMOVE TO DSTORE " + fileName);
+        out.println("REMOVE " + fileName);
+    }
+
+    synchronized public void sendStoreCompleteToClient(){
+        out.println("STORE_COMPLETE");
+    }
+    
+    synchronized public void sendRemoveCompleteToClient(){
+        out.println("REMOVE_COMPLETE");
+    }
 }

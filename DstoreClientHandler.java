@@ -42,7 +42,7 @@ public class DstoreClientHandler extends Thread {
                 if ((inputLine = in.readLine()) != null){
                     // out.println(inputLine);
                     System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
-                    String response = interpretInput(inputLine);
+                    interpretInput(inputLine);
                     // System.out.println("DSTORE SYSTEM: SENDING = " + response);
                     // out.println(response);
                 }
@@ -61,10 +61,9 @@ public class DstoreClientHandler extends Thread {
     
     }
 
-    private String interpretInput(String input){
+    private void interpretInput(String input){
         
         String[] words = input.split(" ");
-        String response = "";
 
         if (words[0].equals("STORE") && words.length == 3){
             System.out.println("DSTORE SYSTEM: STORE COMMAND DETECTED ");
@@ -87,7 +86,6 @@ public class DstoreClientHandler extends Thread {
         }
 
 
-        return response;
     }
 
     private void handleFile(String fileName, int fileSize){

@@ -23,16 +23,28 @@ public class IndexEntry {
         this.status = newStatus;
     }
 
-    public void setComplete(){
+    public void setStoreComplete(){
         status = IndexEntryStatus.STORE_COMPLETE;
     }
 
+    public void setRemoveInProgress(){
+        status = IndexEntryStatus.REMOVE_IN_PROGRESS;
+    }
+
+    public void setRemoveComplete(){
+        status = IndexEntryStatus.REMOVE_COMPLETE;
+    }
+
     public boolean isAvailable(){
-        return status == IndexEntryStatus.STORE_COMPLETE;
+        return status == IndexEntryStatus.STORE_COMPLETE || status == IndexEntryStatus.REMOVE_COMPLETE;
     }
 
     public void addDstore(Integer dstorePort){
         dstorePorts.add(dstorePort);
+    }
+
+    public void removeDstore(Integer dstorePort){
+        dstorePorts.remove(dstorePort);
     }
 
     public ArrayList<Integer> getDstorePorts(){

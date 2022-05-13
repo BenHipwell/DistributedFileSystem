@@ -16,7 +16,7 @@ public class Controller {
     private ArrayList<ControllerClientHandler> clients;
 
     private ConcurrentHashMap<Integer, ControllerClientHandler> portToStoreEnd;
-    private ConcurrentHashMap<String, StoreRequest> fileNameToStoreReq;
+    private ConcurrentHashMap<String, StoreRequest> fileNameToReq;
 
     private Index index;
 
@@ -35,7 +35,7 @@ public class Controller {
         index = new Index();
         clients = new ArrayList<>();
         portToStoreEnd = new ConcurrentHashMap<>();
-        fileNameToStoreReq = new ConcurrentHashMap<>();   
+        fileNameToReq = new ConcurrentHashMap<>();   
         
             try {
                 serverSocket = new ServerSocket(cport);
@@ -111,7 +111,7 @@ public class Controller {
                 allocatedDstorePorts.add(i);
             }
 
-            fileNameToStoreReq.put(fileName, new StoreRequest(clientEndpoint, allocatedDstorePorts));
+            fileNameToReq.put(fileName, new StoreRequest(clientEndpoint, allocatedDstorePorts));
 
             return allocatedDstorePorts;
 
@@ -123,42 +123,58 @@ public class Controller {
         
     }
 
+    public void removeFile(String fileName, ControllerClientHandler clientEndpoint){
+        IndexEntry entry = index.getEntry(fileName);
+        entry.setRemoveInProgress();
+
+        for (Integer i : entry.getDstorePorts()){
+            System.out.println("SYSTEM: REMOVING FILE FROM " + i);
+            synchronized (portToStoreEnd.get(i)){
+                portToStoreEnd.get(i).sendRemoveToDstore(fileName);
+            }
+        }
+
+        fileNameToReq.put(fileName, new StoreRequest(clientEndpoint, entry.getDstorePorts()));
+    }
+
+    public void removeAck(int port, String fileName){
+        index.getEntry(fileName).removeDstore(port);
+        checkRemoveComplete(fileName);
+    }
+
+    public void checkRemoveComplete(String fileName){
+        StoreRequest request = fileNameToReq.get(fileName);
+        System.out.println("CONTROLLER: Checking if " + fileName + " removal is complete ");
+
+        if (index.getEntry(fileName).getDstorePorts().size() == 0){
+            index.completeRemove(fileName);
+            fileNameToReq.remove(fileName);
+            synchronized (request.getClientEndpoint()){
+                request.getClientEndpoint().sendRemoveCompleteToClient();
+            }
+        }
+    }
+
     public void dstoreAck(int port, String fileName){
         index.getEntry(fileName).addDstore(port);
         checkStoreComplete(fileName);
     }
 
     private void checkStoreComplete(String fileName){
-        StoreRequest storeRequest = fileNameToStoreReq.get(fileName);
-
-        System.out.println("Store request dstores:");
-        for (Integer i : storeRequest.getDstorePorts()){
-            System.out.println(i);
-        }
-
-        System.out.println("Dstores added to index entry:");
-        for (Integer i : index.getEntry(fileName).getDstorePorts()){
-            System.out.println(i);
-        }
-
+        StoreRequest storeRequest = fileNameToReq.get(fileName);
         System.out.println("CONTROLLER: Checking if " + fileName + " storage is complete ");
+
         if (storeRequest.getDstorePorts().equals(index.getEntry(fileName).getDstorePorts())){
             index.completeStore(fileName);
+            fileNameToReq.remove(fileName);
             synchronized (storeRequest.getClientEndpoint()){
-                storeRequest.getClientEndpoint().notify();
+                storeRequest.getClientEndpoint().sendStoreCompleteToClient();
             }
         }
     }
 
     public int getDstoreStroringFile(String fileName, int dstoreIndex){
         IndexEntry entry;
-        // try {
-        //     port = index.getEntry(fileName).getDstorePorts().get(dstoreIndex);
-        // } catch (Exception e){
-        //     port = -1;
-        // }
-        // return port;
-
         try {
                 entry = index.getEntry(fileName);
 
@@ -182,5 +198,9 @@ public class Controller {
 
     public int getDstoreCount(){
         return portToStoreEnd.size();
+    }
+
+    public int getClientCount(){
+        return clients.size();
     }
 }

@@ -20,6 +20,8 @@ public class Dstore {
 
     private ArrayList<String> fileNames;
 
+    private boolean receivingClosed;
+
     private PrintWriter out;
     private BufferedReader in;
 
@@ -36,6 +38,7 @@ public class Dstore {
         this.folderName = foldername;
 
         fileNames = new ArrayList<>();
+        receivingClosed = false;
         initFolder();
 
         try {
@@ -72,16 +75,68 @@ public class Dstore {
 
     public void startClientServerSocket(){
         System.out.println("Starting");
-        while (true){
-            //add: if num of dstores >= rFactor
-            try {
-                DstoreClientHandler dstoreClientHandler = new DstoreClientHandler(clientServerSocket.accept(), this);
-                dstoreClientHandler.start();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+        Dstore dstore = this;
+
+        Thread acceptingThread = new Thread(){
+            public void run(){
+                while (true){
+                    //add: if num of dstores >= rFactor
+                    try {
+                        DstoreClientHandler dstoreClientHandler = new DstoreClientHandler(clientServerSocket.accept(), dstore);
+                        dstoreClientHandler.start();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
+        };
+        acceptingThread.start();;
+
+        // Thread receivingThread = new Thread(){
+        //     public void run(){
+                while (true){
+                    try {
+                        while(!receivingClosed){
+
+                            out = new PrintWriter(controllerSocket.getOutputStream(), true);
+                            in = new BufferedReader(new InputStreamReader(controllerSocket.getInputStream()));
+            
+                            String inputLine;
+            
+                            if ((inputLine = in.readLine()) != null){
+                                // out.println(inputLine);
+                                System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
+                                interpretInput(inputLine);
+                                // System.out.println("DSTORE SYSTEM: SENDING = " + response);
+                                // out.println(response);
+                            }
+                        }
+                        
+                        System.out.println("DSTORE SYSTEM: CLOSING");
+            
+                        in.close();
+                        out.close();
+                        controllerSocket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+    // }
+
+            // private void interpretInput(String input){
+
+            // }
+        // };
+    }
+
+    private void interpretInput(String input){
+        String[] words = input.split(" ");
+
+        if (words[0].equals("REMOVE") && words.length == 2){
+            removeFile(words[1]);
+            out.println("REMOVE_ACK " + words[1]);
         }
+            
     }
 
     public void sendStoreAck(String fileName){
@@ -98,6 +153,11 @@ public class Dstore {
 
     public int getNumFiles(){
         return fileNames.size();
+    }
+
+    private void removeFile(String fileName){
+        File file = new File(folderName + File.separator + fileName);
+        file.delete();
     }
 
     private void initFolder(){
