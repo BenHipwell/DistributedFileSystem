@@ -72,7 +72,7 @@ public class ControllerClientHandler extends Thread {
                 dstoreIndex++;
                 handleLoadOperation(words);
 
-            } else if (words[0].equals("DSTORE") && words.length == 2){
+            } else if (words[0].equals("JOIN") && words.length == 2){
                 dstorePort = Integer.parseInt(words[1]);
                 controller.addDstore(dstorePort, this);
 

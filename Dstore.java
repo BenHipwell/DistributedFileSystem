@@ -50,7 +50,7 @@ public class Dstore {
             this.out = new PrintWriter(this.controllerSocket.getOutputStream(), true);
             this.in = new BufferedReader(new InputStreamReader(controllerSocket.getInputStream()));
 
-            this.out.println("DSTORE" + " " + this.port);
+            this.out.println("JOIN" + " " + this.port);
 
             Runtime.getRuntime().addShutdownHook(new Thread((new Runnable() {
                 public void run(){
