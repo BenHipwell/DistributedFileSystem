@@ -39,9 +39,10 @@ public class TestClient {
             this.out = new PrintWriter(this.socket.getOutputStream(), true);
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
-            testStore(filesize, data, file);
+            testStore(filesize, data, file, "file1");
+            testStore(filesize, data, file, "file2");
 
-            out.println("REMOVE fileName1");
+            out.println("LIST");
 
             String line = in.readLine();
             System.out.println("SYSTEM: CLIENT RECEIVED " + line);
@@ -58,9 +59,10 @@ public class TestClient {
         }
     }
 
-    private void testStore(int filesize, byte[] data, File file){
+    private void testStore(int filesize, byte[] data, File file, String fileName){
         try{
-            this.out.println("STORE fileName1 " + filesize);
+            // this.out.println("STORE fileName1 " + filesize);
+            this.out.println("STORE " + fileName + " " + filesize);
             System.out.println("SYSTEM: is connected?" + socket.isConnected());
             
             String line = in.readLine();
@@ -87,7 +89,7 @@ public class TestClient {
                             
                                 PrintWriter out2 = new PrintWriter(dsocket.getOutputStream(), true);
                                 BufferedReader in2 = new BufferedReader(new InputStreamReader(dsocket.getInputStream()));
-                                out2.println("STORE fileName1 " + filesize);
+                                out2.println("STORE " + fileName + " " + filesize);
 
                                 String line2 = in2.readLine();
                                 System.out.println("SYSTEM: CLIENT RECEIVED " + line2);

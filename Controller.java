@@ -184,6 +184,16 @@ public class Controller {
 
     }
 
+    public String getFileList(){
+        String list = "";
+
+        for (var f : index.getFiles()){
+            list = list + " " + f;
+        }
+
+        return list;
+    }
+
     public boolean enoughDstores(){
         return portToStoreEnd.size() >= rFactor;
     }

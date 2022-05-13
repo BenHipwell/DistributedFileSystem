@@ -87,6 +87,9 @@ public class ControllerClientHandler extends Thread {
                 String fileName = words[1];
                 controller.removeAck(dstorePort, fileName);
 
+            } else if (input.equals("LIST")){
+                out.println("LIST" + controller.getFileList());
+
             } else {
                 //Handle invalid request
             }
