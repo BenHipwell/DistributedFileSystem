@@ -18,15 +18,6 @@ public class Index {
         } else return false;
     }
 
-    // public void addNewEntry(String fileName, Dstore dstore){
-    //     if (index.contains(fileName)){
-    //         index.get(fileName).addDstore(dstore);
-    //     } else {
-    //         index.put(fileName, new IndexEntry(dstore));
-
-    //     }
-    // }
-
     public void addDstoreToFile(String fileName, Integer dstorePort){
         if (index.contains(fileName))
         index.get(fileName).addDstore(dstorePort);

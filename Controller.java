@@ -46,7 +46,6 @@ public class Controller {
                         try {
                             serverSocket.close();
                         } catch (IOException e) {
-                            // TODO Auto-generated catch block
                             System.out.println("Error thrown on closing server socket");
                             e.printStackTrace();
                         }
@@ -55,7 +54,6 @@ public class Controller {
                 
                 start();
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
     }
@@ -70,7 +68,6 @@ public class Controller {
                 clients.add(clientHandler);
                 clientHandler.start();
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
         }
@@ -80,7 +77,6 @@ public class Controller {
         try {
             serverSocket.close();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }

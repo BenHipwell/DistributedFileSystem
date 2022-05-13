@@ -72,7 +72,7 @@ public class ControllerClientHandler extends Thread {
                 dstoreIndex++;
                 handleLoadOperation(words);
 
-            } else if (words[0].equals("DSTORE") && words.length == 2){ //connecting dstore
+            } else if (words[0].equals("DSTORE") && words.length == 2){
                 dstorePort = Integer.parseInt(words[1]);
                 controller.addDstore(dstorePort, this);
 
@@ -111,15 +111,6 @@ public class ControllerClientHandler extends Thread {
         }
 
         out.println(response);
-        // synchronized (this){
-        //     try {
-        //         this.wait();
-        //         System.out.println("CONTROLLER: Sending store complete to client");
-        //         out.println("STORE_COMPLETE");
-        //     } catch (InterruptedException e) {
-        //         e.printStackTrace();
-        //     }
-        // }
     }
 
     private void handleLoadOperation(String[] words){
@@ -137,7 +128,11 @@ public class ControllerClientHandler extends Thread {
 
     private void handleRemoveOperation(String[] words){
         String fileName = words[1];
-        controller.removeFile(fileName, this);
+        try {
+            controller.removeFile(fileName, this);
+        } catch (Exception e) {
+            out.println("ERROR_FILE_DOES_NOT_EXIST");
+        }
 
     }
 

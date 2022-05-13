@@ -16,12 +16,7 @@ public class DstoreClientHandler extends Thread {
     private PrintWriter out;
     private BufferedReader in;
 
-    // private byte[] data;
-
     private boolean closed;
-
-    // private String fileName;
-    // private int fileSize;
 
     public DstoreClientHandler(Socket clientSocket, Dstore dstore){
         System.out.println("DSTORE SYSTEM: Starting client socket");
@@ -40,11 +35,8 @@ public class DstoreClientHandler extends Thread {
                 String inputLine;
 
                 if ((inputLine = in.readLine()) != null){
-                    // out.println(inputLine);
                     System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
                     interpretInput(inputLine);
-                    // System.out.println("DSTORE SYSTEM: SENDING = " + response);
-                    // out.println(response);
                 }
             }
             
@@ -55,7 +47,6 @@ public class DstoreClientHandler extends Thread {
             clientSocket.close();
 
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     
@@ -66,12 +57,7 @@ public class DstoreClientHandler extends Thread {
         String[] words = input.split(" ");
 
         if (words[0].equals("STORE") && words.length == 3){
-            System.out.println("DSTORE SYSTEM: STORE COMMAND DETECTED ");
 
-            // this.fileName = words[1];
-            // this.fileSize = Integer.parseInt(words[2]);
-            // dstore.beginStore(fileName);
-            // response = "ACK";
             System.out.println("DSTORE SYSTEM: Sending ACK");
             out.println("ACK");
             handleFile(words[1],Integer.parseInt(words[2]));
@@ -99,9 +85,6 @@ public class DstoreClientHandler extends Thread {
 
         try {
                 BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file));
-
-                // bytesRead = clientSocket.getInputStream().read(data,0,data.length);
-                // current = bytesRead;
 
                 do {
                     bytesRead = clientSocket.getInputStream().read(data,current,fileSize-current);

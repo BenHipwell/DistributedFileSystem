@@ -92,41 +92,30 @@ public class Dstore {
         };
         acceptingThread.start();;
 
-        // Thread receivingThread = new Thread(){
-        //     public void run(){
-                while (true){
-                    try {
-                        while(!receivingClosed){
+        while (true){
+            try {
+                while(!receivingClosed){
 
-                            out = new PrintWriter(controllerSocket.getOutputStream(), true);
-                            in = new BufferedReader(new InputStreamReader(controllerSocket.getInputStream()));
-            
-                            String inputLine;
-            
-                            if ((inputLine = in.readLine()) != null){
-                                // out.println(inputLine);
-                                System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
-                                interpretInput(inputLine);
-                                // System.out.println("DSTORE SYSTEM: SENDING = " + response);
-                                // out.println(response);
-                            }
-                        }
-                        
-                        System.out.println("DSTORE SYSTEM: CLOSING");
-            
-                        in.close();
-                        out.close();
-                        controllerSocket.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    out = new PrintWriter(controllerSocket.getOutputStream(), true);
+                    in = new BufferedReader(new InputStreamReader(controllerSocket.getInputStream()));
+    
+                    String inputLine;
+    
+                    if ((inputLine = in.readLine()) != null){
+                        System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
+                        interpretInput(inputLine);
                     }
                 }
-    // }
-
-            // private void interpretInput(String input){
-
-            // }
-        // };
+                
+                System.out.println("DSTORE SYSTEM: CLOSING");
+    
+                in.close();
+                out.close();
+                controllerSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void interpretInput(String input){
@@ -134,7 +123,6 @@ public class Dstore {
 
         if (words[0].equals("REMOVE") && words.length == 2){
             removeFile(words[1]);
-            out.println("REMOVE_ACK " + words[1]);
         }
             
     }
@@ -142,10 +130,6 @@ public class Dstore {
     public void sendStoreAck(String fileName){
         this.out.println("STORE_ACK " + fileName);
     }
-
-    // public void beginStore(String fileName){
-    //     index.addDstoreToFile(fileName, this);
-    // }
 
     public String getFolderName(){
         return folderName;
@@ -157,7 +141,12 @@ public class Dstore {
 
     private void removeFile(String fileName){
         File file = new File(folderName + File.separator + fileName);
-        file.delete();
+        if (file.exists()){
+            file.delete();
+            out.println("REMOVE_ACK " + fileName);
+        } else {
+            out.println("ERROR_FILE_DOES_NOT_EXIST" + fileName);
+        }
     }
 
     private void initFolder(){
@@ -169,8 +158,6 @@ public class Dstore {
             for (File f : folderPath.listFiles()){
                 f.delete();
             }
-            // folderPath.delete();
-            // folderPath.mkdirs();
         }
     }
 
