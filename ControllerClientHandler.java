@@ -152,4 +152,8 @@ public class ControllerClientHandler extends Thread {
     synchronized public void sendRemoveCompleteToClient(){
         out.println("REMOVE_COMPLETE");
     }
+
+    synchronized public void sendRebalanceMessage(String message){
+        out.println(message);
+    }
 }

@@ -1,8 +1,11 @@
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.swing.plaf.multi.MultiTableHeaderUI;
@@ -214,7 +217,7 @@ public class Controller {
     }
 
 
-    //-----------------------------------------------------------------------------------------------------------------------------------------------
+    // R E B A L A N C E ----------------------------------------------------------------------------------------------------------------------------------
 
     private void rebalance(){
         int minFiles = Math.floorDiv(rFactor, getDstoreCount());
@@ -224,6 +227,118 @@ public class Controller {
 
         //use LIST
         //round robin, create completely new organisation
+
+        ArrayList<Integer> dstorePorts = new ArrayList<>();
+        dstorePorts.addAll(portToStoreEnd.keySet());
+
+        int dstoreIndex = 0;
+        int dstoreCount = getDstoreCount();
+
+        HashMap<String,ArrayList<Integer>> fileNameToNewDstorePort = new HashMap<>();
+        HashMap<Integer,ArrayList<String>> dstoreToNewFiles = new HashMap<>();
+
+        //NEED TO ACTUALLY GET VALUES TO POPULATE THIS
+        HashMap<Integer,ArrayList<String>> currentDstoreFiles = new HashMap<>();
+
+        //round robin allocation
+        for (String file : index.getFiles()){
+
+            for (int i = 0; i < rFactor; i++){
+                if (dstoreIndex >= dstoreCount){
+                    dstoreIndex = 0;
+                }
+                ArrayList<Integer> newDstores;
+                if (fileNameToNewDstorePort.containsKey(file)){
+                    newDstores = fileNameToNewDstorePort.get(file);
+                } else {
+                    newDstores = new ArrayList<>();
+                }
+                int thisDstore = dstorePorts.get(dstoreIndex);
+                newDstores.add(thisDstore);
+                fileNameToNewDstorePort.put(file, newDstores);
+
+                ArrayList<String> newFiles;
+                if (dstoreToNewFiles.containsKey(thisDstore)){
+                    newFiles = dstoreToNewFiles.get(thisDstore);
+                } else {
+                    newFiles = new ArrayList<>();
+                }
+                newFiles.add(file);
+                dstoreToNewFiles.put(thisDstore, newFiles);
+
+                dstoreIndex++;
+            }
+        }
+
+        for (Integer port : dstorePorts){
+            ArrayList<String> filesToRemove = new ArrayList<>();
+            HashMap<String, ArrayList<Integer>> filesToSend = new HashMap<>();
+
+            ArrayList<String> currentFiles = currentDstoreFiles.get(port);
+            ArrayList<String> supposedFiles = dstoreToNewFiles.get(port);
+
+            //for each current file in this dstore
+            for (String currentFile : currentFiles){
+                //it checks all other ports
+                for (Integer otherPort : dstorePorts){
+                    if (port == otherPort) break;
+                    
+                    //to see if it has a file that another dstore needs
+                    if (dstoreToNewFiles.get(otherPort).contains(currentFile) && !currentDstoreFiles.get(otherPort).contains(currentFile)){
+                        ArrayList<Integer> temp;
+                        if (filesToSend.containsKey(currentFile)){
+                            temp = filesToSend.get(currentFile);
+                        } else {
+                            temp = new ArrayList<>();
+                        }
+                        temp.add(otherPort);
+                        //adds all files to send and the dstore to send to in a map
+                        filesToSend.put(currentFile, temp);
+
+                        //updates current map
+                        currentDstoreFiles.get(otherPort).add(currentFile);
+                    }
+
+                }
+            }
+
+            //specify files to be removed
+            for (String f : currentFiles){
+                if (!supposedFiles.contains(f)){
+                    filesToRemove.add(f);
+                    //and update current map
+                    currentDstoreFiles.get(port).remove(f);
+                }
+            }
+
+            //send those files
+                //make rebalance message
+            String rebalanceMessage = "REBALANCE " + filesToSend.size() + " ";
+
+            if (filesToSend.size() > 0){
+                for (Map.Entry<String, ArrayList<Integer>> file : filesToSend.entrySet()){
+                    rebalanceMessage = rebalanceMessage + file.getKey() + " " + file.getValue().size();
+                    for (Integer dstorePort : file.getValue()){
+                        rebalanceMessage = rebalanceMessage + " " + dstorePort;
+                    }
+                }
+            }
+
+            rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
+
+            if (filesToRemove.size() > 0){
+                for (String file : filesToRemove){
+                    rebalanceMessage = rebalanceMessage + " " + file;
+                }
+            }
+
+                //send it
+
+            synchronized (portToStoreEnd.get(port)){
+                portToStoreEnd.get(port).sendRebalanceMessage(rebalanceMessage);
+            }
+            
+        }
 
 
     }
