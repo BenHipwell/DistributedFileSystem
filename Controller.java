@@ -237,14 +237,15 @@ public class Controller {
          }
     }
 
-    public void receiveFileList(int port, ArrayList<String> files){
+    synchronized void receiveFileList(int port, ArrayList<String> files){
         currentDstoreFiles.put(port, files);
         if (currentDstoreFiles.size() == getDstoreCount()){
+            System.out.println("Dstore lists complete...Rebalancing, from port " + port);
             rebalance();
         }
     }
 
-    private void rebalance(){
+    synchronized private void rebalance(){
         int minFiles = Math.floorDiv(rFactor, getDstoreCount());
         int maxFiles = (int) Math.ceil((double) rFactor / getDstoreCount());
 
@@ -272,6 +273,12 @@ public class Controller {
         // }
 
         //round robin allocation
+        System.out.println("INDEX FILES: ");
+        for (String file : index.getFiles()){
+            System.out.println(file);
+        }
+
+
         for (String file : index.getFiles()){
 
             for (int i = 0; i < rFactor; i++){
@@ -296,17 +303,34 @@ public class Controller {
                 }
                 newFiles.add(file);
                 dstoreToNewFiles.put(thisDstore, newFiles);
+                System.out.println("DSTORE TO FILE MAP: " + thisDstore + " index: " + dstoreIndex + " new files: ");
+                for (String s : newFiles){
+                    System.out.println(s);
+                }
 
                 dstoreIndex++;
             }
         }
 
+        if (!index.getFiles().isEmpty()){
         for (Integer port : dstorePorts){
             ArrayList<String> filesToRemove = new ArrayList<>();
             HashMap<String, ArrayList<Integer>> filesToSend = new HashMap<>();
 
-            ArrayList<String> currentFiles = currentDstoreFiles.get(port);
-            ArrayList<String> supposedFiles = dstoreToNewFiles.get(port);
+            ArrayList<String> currentFiles;
+            ArrayList<String> supposedFiles;
+
+            try {
+                supposedFiles = dstoreToNewFiles.get(port);
+            } catch (Exception e) {
+                supposedFiles = new ArrayList<>();
+            }
+
+            try {
+                currentFiles = currentDstoreFiles.get(port);
+            } catch (Exception e) {
+                currentFiles = new ArrayList<>();
+            }
 
             //for each current file in this dstore
             for (String currentFile : currentFiles){
@@ -333,11 +357,18 @@ public class Controller {
                 }
             }
 
+            if (supposedFiles.size() > 0){
             //specify files to be removed
             for (String f : currentFiles){
                 if (!supposedFiles.contains(f)){
                     filesToRemove.add(f);
                     //and update current map
+                    currentDstoreFiles.get(port).remove(f);
+                }
+            }
+            } else {
+                for (String f : currentFiles){
+                    filesToRemove.add(f);
                     currentDstoreFiles.get(port).remove(f);
                 }
             }
@@ -367,12 +398,14 @@ public class Controller {
             }
 
                 //send it
+            System.out.println("Store " + port + " message = " + rebalanceMessage);
 
             synchronized (portToStoreEnd.get(port)){
                 portToStoreEnd.get(port).sendRebalanceMessage(rebalanceMessage);
             }
             
         }
+    }
 
         currentDstoreFiles.clear();
     }

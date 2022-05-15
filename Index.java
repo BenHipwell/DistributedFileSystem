@@ -13,7 +13,7 @@ public class Index {
     }
 
     public Boolean addNewEntry(String fileName, int fileSize){
-        if (!index.contains(fileName)){
+        if (!index.containsKey(fileName)){
             System.out.println("INDEX: Adding file: " + fileName);
             index.put(fileName, new IndexEntry(fileSize));
             return true;
@@ -21,7 +21,7 @@ public class Index {
     }
 
     public void addDstoreToFile(String fileName, Integer dstorePort){
-        if (index.contains(fileName))
+        if (index.containsKey(fileName))
         index.get(fileName).addDstore(dstorePort);
     }
 

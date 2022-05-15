@@ -100,6 +100,7 @@ public class ControllerClientHandler extends Thread {
         // } else {
         //     out.println("ERROR_NOT_ENOUGH_DSTORES");
         // }
+        inputLine = "";
     }
 
     private void handleStoreOperation(String[] words){
@@ -108,16 +109,17 @@ public class ControllerClientHandler extends Thread {
             
         if (!controller.addNewFile(fileName, fileSize)){
             out.println("ERROR_FILE_ALREADY_EXISTS");
-        }
-
-        ArrayList<Integer> DstorePorts = controller.handleStoreRequest(fileName, this);
             
-        String response = "STORE_TO";
-        for (Integer port : DstorePorts){
-            response = response + " " + port;
+        } else {
+            ArrayList<Integer> DstorePorts = controller.handleStoreRequest(fileName, this);
+            
+            String response = "STORE_TO";
+            for (Integer port : DstorePorts){
+                response = response + " " + port;
+            }
+    
+            out.println(response);
         }
-
-        out.println(response);
     }
 
     private void handleLoadOperation(String[] words){

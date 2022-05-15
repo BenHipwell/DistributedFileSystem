@@ -40,15 +40,20 @@ public class TestClient {
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
             testStore(filesize, data, file, "file1");
+            synchronized(this){
+                wait(5000);
+            }
+            testStore(filesize, data, file, "file2");
+
             // testStore(filesize, data, file, "file2");
 
             // out.println("LIST");
 
-            String line = in.readLine();
-            System.out.println("SYSTEM: CLIENT RECEIVED " + line);
+            // String line = in.readLine();
+            // System.out.println("SYSTEM: CLIENT RECEIVED " + line);
 
             socket.close();
-            Thread.currentThread().interrupt();
+            // Thread.currentThread().interrupt();
             // while ((line2 = in.readLine()) != null){
             //     System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
             // }

@@ -259,7 +259,6 @@ public class Dstore {
         }
 
         out.println("REBALANCE_COMPLETE");
-
     }
 
 }
