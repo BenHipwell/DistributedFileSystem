@@ -40,9 +40,9 @@ public class TestClient {
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
             testStore(filesize, data, file, "file1");
-            testStore(filesize, data, file, "file2");
+            // testStore(filesize, data, file, "file2");
 
-            out.println("LIST");
+            // out.println("LIST");
 
             String line = in.readLine();
             System.out.println("SYSTEM: CLIENT RECEIVED " + line);

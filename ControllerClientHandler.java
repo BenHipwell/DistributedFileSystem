@@ -14,6 +14,7 @@ public class ControllerClientHandler extends Thread {
     int dstorePort;
 
     int dstoreIndex;
+    String inputLine;
 
     private boolean closed;
 
@@ -32,8 +33,6 @@ public class ControllerClientHandler extends Thread {
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             
             while(!closed){
-
-                String inputLine;
 
                 if ((inputLine = in.readLine()) != null){
                     System.out.println("CONTROLLER SYSTEM: RECEIEVED = " + inputLine);
@@ -88,10 +87,14 @@ public class ControllerClientHandler extends Thread {
                 String fileName = words[1];
                 controller.removeAck(dstorePort, fileName);
 
-            } else if (input.equals("LIST")){
+            } else if (input.equals("LIST") && dstorePort == 0){
                 out.println("LIST" + controller.getFileList());
 
+            } else if (words[0].equals("LIST") && dstorePort != 0){
+                receiveFileList(words);
+                inputLine = "";
             } else {
+                System.out.println("UH OH");
                 //Handle invalid request
             }
         // } else {
@@ -155,5 +158,53 @@ public class ControllerClientHandler extends Thread {
 
     synchronized public void sendRebalanceMessage(String message){
         out.println(message);
+    }
+
+    // synchronized public ArrayList<String> sendListMessageToDstore(){
+    //     ArrayList<String> fileList = new ArrayList<>();
+
+    //     try {
+
+    //         out.println("LIST");
+    //         System.out.println("READLINE 1");
+    //         String line = in.readLine();
+    //         System.out.println("READLINE 2");
+    //         String[] words = line.split(" ");
+            
+    //         if (words[0].equals("LIST")){
+    //             for (int i = 1; i < words.length; i++){
+    //                 System.out.print("CONTROLLER: Dstore " + dstorePort + " has file: " + words[i]);
+    //                 fileList.add(words[i]);
+    //             }
+    //         }
+
+    //     } catch (Exception e){
+    //         e.printStackTrace();
+    //     }
+
+    //     System.out.println("READLINE RETURNING");
+
+    //     return fileList;
+    // }
+
+    synchronized public void sendListMessageToDstore(){
+        if (dstorePort > 0){
+            out.println("LIST");
+        }
+    }
+
+    private void receiveFileList(String[] words){
+        ArrayList<String> fileList = new ArrayList<>();
+
+        System.out.println("READLINE 2");
+        // String[] words = line.split(" ");
+                
+        if (words[0].equals("LIST")){
+            for (int i = 1; i < words.length; i++){
+                System.out.print("CONTROLLER: Dstore " + dstorePort + " has file: " + words[i]);
+                fileList.add(words[i]);
+            }
+        }
+        controller.receiveFileList(dstorePort, fileList);
     }
 }

@@ -1,5 +1,7 @@
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -123,6 +125,15 @@ public class Dstore {
 
         if (words[0].equals("REMOVE") && words.length == 2){
             removeFile(words[1]);
+        } else if (words[0].equals("REBALANCE")){
+            handleRebalance(input);
+        } else if (input.equals("LIST")){
+            String response = "LIST";
+            for (String file : getFileList()){
+                response = response + " " + file;
+            }
+            System.out.println("DSTORE " + port + " list: " + response);
+            out.println(response);
         }
             
     }
@@ -135,8 +146,22 @@ public class Dstore {
         return folderName;
     }
 
-    public int getNumFiles(){
-        return fileNames.size();
+    // public int getNumFiles(){
+    //     return fileNames.size();
+    // }
+
+    private ArrayList<String> getFileList(){
+        ArrayList<String> fileList = new ArrayList<>();
+        
+        File folderPath = new File(folderName);
+
+        if (folderPath.isDirectory()){
+            for (File f : folderPath.listFiles()){
+                //this getName might be an issue
+                fileList.add(f.getName());
+            }
+        }
+        return fileList;
     }
 
     private void removeFile(String fileName){
@@ -159,6 +184,82 @@ public class Dstore {
                 f.delete();
             }
         }
+    }
+
+    private void handleRebalance(String message){
+        String[] words = message.split(" ");
+
+        int sendFileCount = Integer.parseInt(words[1]);
+        int messageIndex = 1;
+
+        if (sendFileCount > 0){
+            for (int i = 0; i < sendFileCount; i++){
+                messageIndex++;
+                String fileName = words[messageIndex];
+                messageIndex++;
+                int dstoreCount = Integer.parseInt(words[messageIndex]);
+
+                File file = new File(folderName + File.separator + fileName);
+                int filesize = (int) file.length();
+                byte[] data = new byte [filesize];
+
+                if (file.exists()){
+                    for (int j = 0; j < dstoreCount; j++){
+                        messageIndex++;
+                        int dstorePort = Integer.parseInt(words[messageIndex]);
+    
+                        Thread sendToOtherDstore = new Thread(){
+                            public void run(){
+                                try {
+                                    Socket dsocket;
+                                    dsocket = new Socket(InetAddress.getLoopbackAddress(), dstorePort);
+                                
+                                    PrintWriter out2 = new PrintWriter(dsocket.getOutputStream(), true);
+                                    BufferedReader in2 = new BufferedReader(new InputStreamReader(dsocket.getInputStream()));
+                                    out2.println("REBALANCE_STORE " + fileName + " " + filesize);
+    
+                                    String line2 = in2.readLine();
+                                    System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
+    
+                                    if (line2.equals("ACK")){
+                                        BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
+                                        input.read(data,0,filesize);
+                                        System.out.println("DSTORE: Sending file of size " + filesize);
+                                        dsocket.getOutputStream().write(data,0,filesize);
+                                        dsocket.getOutputStream().flush();
+                                        System.out.println("DSTORE: File sent");
+                                        input.close();
+                                    }
+                                    out2.close();
+                                    in2.close();
+                                    dsocket.close();
+                                    
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        };
+                        sendToOtherDstore.start();
+                    }
+                }
+            }
+        }
+
+        messageIndex++;
+        int removeFileCount = Integer.parseInt(words[messageIndex]);
+
+        if (removeFileCount > 0){
+            for (int i = 0; i < sendFileCount; i++){
+                messageIndex++;
+                File file = new File(folderName + File.separator + words[messageIndex]);
+                if (file.exists()){
+                    file.delete();
+                }
+            }
+        }
+
+        out.println("REBALANCE_COMPLETE");
+
     }
 
 }

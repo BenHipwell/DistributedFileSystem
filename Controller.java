@@ -23,6 +23,8 @@ public class Controller {
     private ConcurrentHashMap<Integer, ControllerClientHandler> portToStoreEnd;
     private ConcurrentHashMap<String, StoreRequest> fileNameToReq;
 
+    private ConcurrentHashMap<Integer,ArrayList<String>> currentDstoreFiles;
+
     private Index index;
 
     public static void main(String[] args){
@@ -40,7 +42,8 @@ public class Controller {
         index = new Index();
         clients = new ArrayList<>();
         portToStoreEnd = new ConcurrentHashMap<>();
-        fileNameToReq = new ConcurrentHashMap<>();   
+        fileNameToReq = new ConcurrentHashMap<>(); 
+        currentDstoreFiles = new ConcurrentHashMap<>();  
         
             try {
                 serverSocket = new ServerSocket(cport);
@@ -89,7 +92,7 @@ public class Controller {
     public void addDstore(int port, ControllerClientHandler endpoint){
         clients.remove(endpoint);
         portToStoreEnd.put(port, endpoint);
-        rebalance();
+        startRebalance();
     }
 
     public void removeDstore(int port){
@@ -166,11 +169,12 @@ public class Controller {
         StoreRequest storeRequest = fileNameToReq.get(fileName);
         System.out.println("CONTROLLER: Checking if " + fileName + " storage is complete ");
 
-        if (storeRequest.getDstorePorts().equals(index.getEntry(fileName).getDstorePorts())){
+        if (index.getEntry(fileName).getDstorePorts().size() == getDstoreCount()){
             index.completeStore(fileName);
             fileNameToReq.remove(fileName);
             synchronized (storeRequest.getClientEndpoint()){
                 storeRequest.getClientEndpoint().sendStoreCompleteToClient();
+                startRebalance();
             }
         }
     }
@@ -219,6 +223,27 @@ public class Controller {
 
     // R E B A L A N C E ----------------------------------------------------------------------------------------------------------------------------------
 
+    private void startRebalance(){
+        ArrayList<Integer> dstorePorts = new ArrayList<>();
+        dstorePorts.addAll(portToStoreEnd.keySet());
+
+        for (Integer port : dstorePorts){
+            // synchronized (portToStoreEnd.get(port)){
+            //      currentDstoreFiles.put(port, portToStoreEnd.get(port).sendListMessageToDstore());
+            //  }
+            synchronized (portToStoreEnd.get(port)){
+                     portToStoreEnd.get(port).sendListMessageToDstore();
+                 }
+         }
+    }
+
+    public void receiveFileList(int port, ArrayList<String> files){
+        currentDstoreFiles.put(port, files);
+        if (currentDstoreFiles.size() == getDstoreCount()){
+            rebalance();
+        }
+    }
+
     private void rebalance(){
         int minFiles = Math.floorDiv(rFactor, getDstoreCount());
         int maxFiles = (int) Math.ceil((double) rFactor / getDstoreCount());
@@ -238,7 +263,13 @@ public class Controller {
         HashMap<Integer,ArrayList<String>> dstoreToNewFiles = new HashMap<>();
 
         //NEED TO ACTUALLY GET VALUES TO POPULATE THIS
-        HashMap<Integer,ArrayList<String>> currentDstoreFiles = new HashMap<>();
+        // ConcurrentHashMap<Integer,ArrayList<String>> currentDstoreFiles = new ConcurrentHashMap<>();
+    
+        // for (Integer port : dstorePorts){
+        //    synchronized (portToStoreEnd.get(port)){
+        //         currentDstoreFiles.put(port, portToStoreEnd.get(port).sendListMessageToDstore());
+        //     }
+        // }
 
         //round robin allocation
         for (String file : index.getFiles()){
@@ -324,12 +355,15 @@ public class Controller {
                 }
             }
 
-            rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
+            // rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
 
             if (filesToRemove.size() > 0){
+                rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
                 for (String file : filesToRemove){
                     rebalanceMessage = rebalanceMessage + " " + file;
                 }
+            } else {
+                rebalanceMessage = rebalanceMessage + filesToRemove.size();
             }
 
                 //send it
@@ -340,7 +374,7 @@ public class Controller {
             
         }
 
-
+        currentDstoreFiles.clear();
     }
 
 
