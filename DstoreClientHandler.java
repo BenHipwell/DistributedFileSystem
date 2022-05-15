@@ -101,7 +101,6 @@ public class DstoreClientHandler extends Thread {
                 dstore.sendStoreAck(fileName);
 
                 outputStream.close();
-                this.closed = true;
 
         } catch (Exception e) {
             e.printStackTrace();

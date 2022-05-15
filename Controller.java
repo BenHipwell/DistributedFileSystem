@@ -313,98 +313,107 @@ public class Controller {
         }
 
         if (!index.getFiles().isEmpty()){
-        for (Integer port : dstorePorts){
-            ArrayList<String> filesToRemove = new ArrayList<>();
-            HashMap<String, ArrayList<Integer>> filesToSend = new HashMap<>();
+            for (Integer port : dstorePorts){
+                ArrayList<String> filesToRemove = new ArrayList<>();
+                HashMap<String, ArrayList<Integer>> filesToSend = new HashMap<>();
 
-            ArrayList<String> currentFiles;
-            ArrayList<String> supposedFiles;
+                ArrayList<String> currentFiles;
+                ArrayList<String> supposedFiles;
 
-            try {
-                supposedFiles = dstoreToNewFiles.get(port);
-            } catch (Exception e) {
-                supposedFiles = new ArrayList<>();
-            }
+                if (dstoreToNewFiles.containsKey(port)){
+                    try {
+                        supposedFiles = dstoreToNewFiles.get(port);
+                    } catch (Exception e) {
+                        supposedFiles = new ArrayList<>();
+                    }
 
-            try {
-                currentFiles = currentDstoreFiles.get(port);
-            } catch (Exception e) {
-                currentFiles = new ArrayList<>();
-            }
+                    try {
+                        currentFiles = currentDstoreFiles.get(port);
+                    } catch (Exception e) {
+                        currentFiles = new ArrayList<>();
+                    }
+                } else {
+                    supposedFiles = new ArrayList<>();
+                    // dstoreToNewFiles.put(port, currentDstoreFiles.get(port));
+                    currentFiles = currentDstoreFiles.get(port);
+                }
 
-            //for each current file in this dstore
-            for (String currentFile : currentFiles){
-                //it checks all other ports
-                for (Integer otherPort : dstorePorts){
-                    if (port == otherPort) break;
-                    
-                    //to see if it has a file that another dstore needs
-                    if (dstoreToNewFiles.get(otherPort).contains(currentFile) && !currentDstoreFiles.get(otherPort).contains(currentFile)){
-                        ArrayList<Integer> temp;
-                        if (filesToSend.containsKey(currentFile)){
-                            temp = filesToSend.get(currentFile);
-                        } else {
-                            temp = new ArrayList<>();
+                //for each current file in this dstore
+                for (String currentFile : currentFiles){
+                    //it checks all other ports
+                    for (Integer otherPort : dstorePorts){
+                        if (port == otherPort) break;
+                        
+                        //to see if it has a file that another dstore needs
+                        if (dstoreToNewFiles.containsKey(otherPort)){
+                            if (dstoreToNewFiles.get(otherPort).contains(currentFile) && !currentDstoreFiles.get(otherPort).contains(currentFile)){
+                                ArrayList<Integer> temp;
+                                if (filesToSend.containsKey(currentFile)){
+                                    temp = filesToSend.get(currentFile);
+                                } else {
+                                    temp = new ArrayList<>();
+                                }
+                                temp.add(otherPort);
+                                //adds all files to send and the dstore to send to in a map
+                                filesToSend.put(currentFile, temp);
+
+                                //updates current map
+                                currentDstoreFiles.get(otherPort).add(currentFile);
+                            }
                         }
-                        temp.add(otherPort);
-                        //adds all files to send and the dstore to send to in a map
-                        filesToSend.put(currentFile, temp);
-
-                        //updates current map
-                        currentDstoreFiles.get(otherPort).add(currentFile);
-                    }
-
-                }
-            }
-
-            if (supposedFiles.size() > 0){
-            //specify files to be removed
-            for (String f : currentFiles){
-                if (!supposedFiles.contains(f)){
-                    filesToRemove.add(f);
-                    //and update current map
-                    currentDstoreFiles.get(port).remove(f);
-                }
-            }
-            } else {
-                for (String f : currentFiles){
-                    filesToRemove.add(f);
-                    currentDstoreFiles.get(port).remove(f);
-                }
-            }
-
-            //send those files
-                //make rebalance message
-            String rebalanceMessage = "REBALANCE " + filesToSend.size() + " ";
-
-            if (filesToSend.size() > 0){
-                for (Map.Entry<String, ArrayList<Integer>> file : filesToSend.entrySet()){
-                    rebalanceMessage = rebalanceMessage + file.getKey() + " " + file.getValue().size();
-                    for (Integer dstorePort : file.getValue()){
-                        rebalanceMessage = rebalanceMessage + " " + dstorePort;
                     }
                 }
-            }
 
-            // rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
-
-            if (filesToRemove.size() > 0){
-                rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
-                for (String file : filesToRemove){
-                    rebalanceMessage = rebalanceMessage + " " + file;
+                // if (supposedFiles.size() > 0){
+                //specify files to be removed
+                for (String currentFile : currentFiles){
+                    if (!supposedFiles.contains(currentFile)){
+                        filesToRemove.add(currentFile);
+                        //and update current map
+                        if (dstoreToNewFiles.containsKey(port)){
+                            currentDstoreFiles.get(port).remove(currentFile);
+                        }
+                    }
                 }
-            } else {
-                rebalanceMessage = rebalanceMessage + filesToRemove.size();
-            }
+                // } else {
+                //     for (String f : currentFiles){
+                //         filesToRemove.add(f);
+                //         currentDstoreFiles.get(port).remove(f);
+                //     }
+                // }
 
-                //send it
-            System.out.println("Store " + port + " message = " + rebalanceMessage);
+                //send those files
+                    //make rebalance message
+                String rebalanceMessage = "REBALANCE " + filesToSend.size();
 
-            synchronized (portToStoreEnd.get(port)){
-                portToStoreEnd.get(port).sendRebalanceMessage(rebalanceMessage);
+                if (filesToSend.size() > 0){
+                    for (Map.Entry<String, ArrayList<Integer>> file : filesToSend.entrySet()){
+                        rebalanceMessage = rebalanceMessage + " " + file.getKey() + " " + file.getValue().size();
+                        for (Integer dstorePort : file.getValue()){
+                            rebalanceMessage = rebalanceMessage + " " + dstorePort;
+                        }
+                    }
+                }
+
+                // rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
+
+                if (filesToRemove.size() > 0){
+                    rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
+                    for (String file : filesToRemove){
+                        rebalanceMessage = rebalanceMessage + " " + file;
+                    }
+                } else {
+                    rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
+                }
+
+                    //send it
+                System.out.println("Store " + port + " message = " + rebalanceMessage);
+
+                synchronized (portToStoreEnd.get(port)){
+                    portToStoreEnd.get(port).sendRebalanceMessage(rebalanceMessage);
+                }
+                
             }
-            
-        }
     }
 
         currentDstoreFiles.clear();
