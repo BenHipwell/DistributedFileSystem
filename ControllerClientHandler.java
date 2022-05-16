@@ -104,6 +104,21 @@ public class ControllerClientHandler extends Thread {
     }
 
     private void handleStoreOperation(String[] words){
+
+        do {
+            if (controller.getRebalanceThread() != null){
+                if (controller.getRebalanceThread().isAlive()){
+                    try {
+                        System.out.println("CONTROLLER: WAITING FOR REBALANCE TO FINISH");
+                        sleep(500);
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        } while (controller.getRebalanceThread().isAlive());
+
         String fileName = words[1];
         int fileSize = Integer.parseInt(words[2]);
             
@@ -136,6 +151,20 @@ public class ControllerClientHandler extends Thread {
     }
 
     private void handleRemoveOperation(String[] words){
+        do {
+            if (controller.getRebalanceThread() != null){
+                if (controller.getRebalanceThread().isAlive()){
+                    try {
+                        System.out.println("CONTROLLER: WAITING FOR REBALANCE TO FINISH");
+                        sleep(500);
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        } while (controller.getRebalanceThread() != null);
+
         String fileName = words[1];
         try {
             controller.removeFile(fileName, this);

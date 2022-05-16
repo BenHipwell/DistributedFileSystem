@@ -6,6 +6,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.swing.plaf.multi.MultiTableHeaderUI;
@@ -15,7 +17,7 @@ public class Controller {
     private int cport;
     private int rFactor;
     private double timeout;
-    private int rebalance;
+    private int rebalancePeriod;
 
     private ServerSocket serverSocket;
     private ArrayList<ControllerClientHandler> clients;
@@ -27,23 +29,41 @@ public class Controller {
 
     private Index index;
 
+    private RebalanceThread rebalanceThread;
+    public boolean firstRebalance = false;
+
+    private Timer timer;
+    private TimerTask task;
+
     public static void main(String[] args){
         if (args.length == 4){
             new Controller(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Double.parseDouble(args[2]), Integer.parseInt(args[3]));
         }
-    }
+    }   
 
-    public Controller(int cport, int rFactor, double timeout, int rebalance){
+    public Controller(int cport, int rFactor, double timeout, int rebalancePeriod){
         this.cport = cport;
         this.rFactor = rFactor;
         this.timeout = timeout;
-        this.rebalance = rebalance;
+        this.rebalancePeriod = rebalancePeriod;
 
-        index = new Index();
         clients = new ArrayList<>();
         portToStoreEnd = new ConcurrentHashMap<>();
         fileNameToReq = new ConcurrentHashMap<>(); 
-        currentDstoreFiles = new ConcurrentHashMap<>();  
+        currentDstoreFiles = new ConcurrentHashMap<>(); 
+
+        //after first timeout
+        
+
+        // timer = new Timer();
+
+        resetTimer();
+
+        // firstRebalance = true;
+        // startRebalance();
+
+        index = new Index(rebalanceThread);
+ 
         
             try {
                 serverSocket = new ServerSocket(cport);
@@ -88,6 +108,29 @@ public class Controller {
             e.printStackTrace();
         }
     }
+
+    private void resetTimer(){
+        // if (timer != null) timer.purge();
+        // if (task != null) task.cancel();
+        task = new TimerTask() {
+            public void run(){
+                firstRebalance = true;
+                startRebalance();
+            }
+        };
+        timer = new Timer();
+        // if (!firstRebalance){
+        //     timer.schedule(task, rebalancePeriod * 1000);
+        //     // try {
+        //     //     Thread.sleep(rebalancePeriod * 1000);
+        //     // } catch (InterruptedException e) {
+        //     //     // TODO Auto-generated catch block
+        //     //     e.printStackTrace();
+        //     // }
+        // } else 
+        timer.scheduleAtFixedRate(task, rebalancePeriod * 1000,rebalancePeriod * 1000);
+    }
+
 
     public void addDstore(int port, ControllerClientHandler endpoint){
         clients.remove(endpoint);
@@ -223,29 +266,51 @@ public class Controller {
 
     // R E B A L A N C E ----------------------------------------------------------------------------------------------------------------------------------
 
-    private void startRebalance(){
-        ArrayList<Integer> dstorePorts = new ArrayList<>();
-        dstorePorts.addAll(portToStoreEnd.keySet());
+    public Thread getRebalanceThread(){
+        return rebalanceThread;
+    }
 
-        for (Integer port : dstorePorts){
-            // synchronized (portToStoreEnd.get(port)){
-            //      currentDstoreFiles.put(port, portToStoreEnd.get(port).sendListMessageToDstore());
-            //  }
-            synchronized (portToStoreEnd.get(port)){
-                     portToStoreEnd.get(port).sendListMessageToDstore();
-                 }
-         }
+    private void startRebalance(){
+        System.out.println("CONTROLLER: STARTING REBALANCE from thread: " + Thread.currentThread().getName());
+        if (firstRebalance){
+            ArrayList<Integer> dstorePorts = new ArrayList<>();
+            if (!portToStoreEnd.isEmpty()){
+                timer.cancel();
+                dstorePorts.addAll(portToStoreEnd.keySet());
+
+                for (Integer port : dstorePorts){
+                    // synchronized (portToStoreEnd.get(port)){
+                    //      currentDstoreFiles.put(port, portToStoreEnd.get(port).sendListMessageToDstore());
+                    //  }
+                    synchronized (portToStoreEnd.get(port)){
+                            portToStoreEnd.get(port).sendListMessageToDstore();
+                        }
+                }
+            }
+            // resetTimer();
+        }
     }
 
     synchronized void receiveFileList(int port, ArrayList<String> files){
         currentDstoreFiles.put(port, files);
         if (currentDstoreFiles.size() == getDstoreCount()){
             System.out.println("Dstore lists complete...Rebalancing, from port " + port);
-            rebalance();
+            rebalanceThread = new RebalanceThread(this);
+            rebalanceThread.start();
         }
     }
 
-    synchronized private void rebalance(){
+    public void rebalance(){
+        
+        if (index.inProgressTransation()){
+            try {
+                System.out.println("REBALANCE: Transaction in progress, waiting...");
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
         int minFiles = Math.floorDiv(rFactor, getDstoreCount());
         int maxFiles = (int) Math.ceil((double) rFactor / getDstoreCount());
 
@@ -335,7 +400,9 @@ public class Controller {
                 } else {
                     supposedFiles = new ArrayList<>();
                     // dstoreToNewFiles.put(port, currentDstoreFiles.get(port));
-                    currentFiles = currentDstoreFiles.get(port);
+                    if (currentDstoreFiles.containsKey(port)){
+                        currentFiles = currentDstoreFiles.get(port);
+                    } else currentFiles = new ArrayList<>();
                 }
 
                 //for each current file in this dstore
@@ -362,11 +429,6 @@ public class Controller {
                             }
                         }
                     }
-                }
-
-                // if (supposedFiles.size() > 0){
-                //specify files to be removed
-                for (String currentFile : currentFiles){
                     if (!supposedFiles.contains(currentFile)){
                         filesToRemove.add(currentFile);
                         //and update current map
@@ -375,6 +437,18 @@ public class Controller {
                         }
                     }
                 }
+
+                // if (supposedFiles.size() > 0){
+                // //specify files to be removed
+                // for (String currentFile : currentFiles){
+                //     if (!supposedFiles.contains(currentFile)){
+                //         filesToRemove.add(currentFile);
+                //         //and update current map
+                //         if (dstoreToNewFiles.containsKey(port)){
+                //             currentDstoreFiles.get(port).remove(currentFile);
+                //         }
+                //     }
+                // }
                 // } else {
                 //     for (String f : currentFiles){
                 //         filesToRemove.add(f);
@@ -409,6 +483,7 @@ public class Controller {
                     //send it
                 System.out.println("Store " + port + " message = " + rebalanceMessage);
 
+
                 synchronized (portToStoreEnd.get(port)){
                     portToStoreEnd.get(port).sendRebalanceMessage(rebalanceMessage);
                 }
@@ -417,6 +492,7 @@ public class Controller {
     }
 
         currentDstoreFiles.clear();
+        resetTimer();
     }
 
 

@@ -7,9 +7,11 @@ import java.util.concurrent.ConcurrentHashMap.KeySetView;
 public class Index {
     
     private ConcurrentHashMap<String,IndexEntry> index;
+    private Thread rebalanceThread;
 
-    public Index(){
+    public Index(Thread rebalanceThread){
         index = new ConcurrentHashMap<>();
+        this.rebalanceThread = rebalanceThread;
     }
 
     public Boolean addNewEntry(String fileName, int fileSize){
@@ -40,10 +42,20 @@ public class Index {
 
     public void completeStore(String fileName){
         index.get(fileName).setStoreComplete();
+
+        if (!inProgressTransation() && rebalanceThread != null){
+            System.out.print("INDEX: Store done, notifying rebalance thread");
+            rebalanceThread.notify();
+        }
     }
 
     public void completeRemove(String fileName){
         index.get(fileName).setRemoveComplete();
+
+        if (!inProgressTransation() && rebalanceThread != null){
+            System.out.print("INDEX: Remove done, notifying rebalance thread");
+            rebalanceThread.notify();
+        }
     }
 
     public IndexEntry getEntry(String fileName){
@@ -54,5 +66,10 @@ public class Index {
         return index.keySet();
     }
     
-
+    public boolean inProgressTransation(){
+        for (IndexEntry entry : index.values()){
+            if (!entry.isAvailable()) return true;
+        }
+        return false;
+    }
 }
