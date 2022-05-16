@@ -140,6 +140,7 @@ public class Controller {
 
     public void removeDstore(int port){
         portToStoreEnd.remove(port);
+        startRebalance();
     }
 
     public boolean addNewFile(String fileName, int fileSize){

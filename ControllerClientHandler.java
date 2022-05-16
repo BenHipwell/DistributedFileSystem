@@ -58,15 +58,17 @@ public class ControllerClientHandler extends Thread {
 
     private void interpretInput(String input){
         
-        // if (controller.enoughDstores()){
-
             String[] words = input.split(" ");
 
             if (words[0].equals("STORE") && words.length == 3){
-                handleStoreOperation(words);
+                if (controller.enoughDstores()){
+                    handleStoreOperation(words);
+                } else out.println("ERROR_NOT_ENOUGH_DSTORES");
 
             } else if (words[0].equals("LOAD") && words.length == 2){
-                handleLoadOperation(words);
+                if (controller.enoughDstores()){
+                    handleLoadOperation(words);
+                } else out.println("ERROR_NOT_ENOUGH_DSTORES");
 
             } else if (words[0].equals("RELOAD") && words.length == 2){
                 dstoreIndex++;
@@ -81,7 +83,9 @@ public class ControllerClientHandler extends Thread {
                 controller.dstoreAck(dstorePort, fileName);
 
             } else if (words[0].equals("REMOVE") && words.length == 2){
-                handleRemoveOperation(words);
+                if (controller.enoughDstores()){
+                    handleRemoveOperation(words);
+                } else out.println("ERROR_NOT_ENOUGH_DSTORES");
 
             } else if (words[0].equals("REMOVE_ACK") && words.length == 2){
                 String fileName = words[1];
@@ -105,19 +109,21 @@ public class ControllerClientHandler extends Thread {
 
     private void handleStoreOperation(String[] words){
 
-        do {
-            if (controller.getRebalanceThread() != null){
-                if (controller.getRebalanceThread().isAlive()){
-                    try {
-                        System.out.println("CONTROLLER: WAITING FOR REBALANCE TO FINISH");
-                        sleep(500);
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+        if (controller.firstRebalance){
+            do {
+                if (controller.getRebalanceThread() != null){
+                    if (controller.getRebalanceThread().isAlive()){
+                        try {
+                            System.out.println("CONTROLLER: WAITING FOR REBALANCE TO FINISH");
+                            sleep(500);
+                        } catch (InterruptedException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
                     }
                 }
-            }
-        } while (controller.getRebalanceThread().isAlive());
+            } while (controller.getRebalanceThread().isAlive());
+        }
 
         String fileName = words[1];
         int fileSize = Integer.parseInt(words[2]);
@@ -190,33 +196,6 @@ public class ControllerClientHandler extends Thread {
     synchronized public void sendRebalanceMessage(String message){
         out.println(message);
     }
-
-    // synchronized public ArrayList<String> sendListMessageToDstore(){
-    //     ArrayList<String> fileList = new ArrayList<>();
-
-    //     try {
-
-    //         out.println("LIST");
-    //         System.out.println("READLINE 1");
-    //         String line = in.readLine();
-    //         System.out.println("READLINE 2");
-    //         String[] words = line.split(" ");
-            
-    //         if (words[0].equals("LIST")){
-    //             for (int i = 1; i < words.length; i++){
-    //                 System.out.print("CONTROLLER: Dstore " + dstorePort + " has file: " + words[i]);
-    //                 fileList.add(words[i]);
-    //             }
-    //         }
-
-    //     } catch (Exception e){
-    //         e.printStackTrace();
-    //     }
-
-    //     System.out.println("READLINE RETURNING");
-
-    //     return fileList;
-    // }
 
     synchronized public void sendListMessageToDstore(){
         if (dstorePort > 0){
