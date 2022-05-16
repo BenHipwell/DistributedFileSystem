@@ -3,7 +3,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class ControllerClientHandler extends Thread {
     private Socket clientSocket;
@@ -15,6 +18,9 @@ public class ControllerClientHandler extends Thread {
 
     int dstoreIndex;
     String inputLine;
+
+    TimerTask task;
+    Timer timer;
 
     private boolean closed;
 
@@ -31,7 +37,8 @@ public class ControllerClientHandler extends Thread {
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            
+            // clientSocket.setSoTimeout(controller.timeout);
+
             while(!closed){
 
                 if ((inputLine = in.readLine()) != null){
@@ -51,7 +58,9 @@ public class ControllerClientHandler extends Thread {
             this.interrupt();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            if (dstorePort > 0){
+                controller.removeDstore(dstorePort);
+            } else e.printStackTrace();
         }
     
     }
@@ -140,6 +149,24 @@ public class ControllerClientHandler extends Thread {
             }
     
             out.println(response);
+            ControllerClientHandler thisHandler = this;
+            task = new TimerTask() {
+                public void run(){
+                    System.out.println("CONTROLLER TIMEOUT");
+                    controller.deleteFileIndex(fileName, thisHandler);
+
+                }
+            };
+            timer = new Timer();
+            timer.schedule(task, (long) controller.timeout);
+
+            // try {
+            //     clientSocket.setSoTimeout((int) controller.timeout);
+            // } catch (SocketException e) {
+            //     System.out.println("TIMEOUT!");
+            //     controller.deleteFileIndex(fileName, this);
+            // }
+
         }
     }
 
@@ -178,6 +205,16 @@ public class ControllerClientHandler extends Thread {
             out.println("ERROR_FILE_DOES_NOT_EXIST");
         }
 
+        ControllerClientHandler thisHandler = this;
+        task = new TimerTask() {
+            public void run(){
+                System.out.println("CONTROLLER TIMEOUT");
+                controller.deleteFileIndex(fileName, thisHandler);
+            }
+        };
+        timer = new Timer();
+        timer.schedule(task, (long) controller.timeout);
+
     }
 
     synchronized public void sendRemoveToDstore(String fileName){
@@ -186,10 +223,14 @@ public class ControllerClientHandler extends Thread {
     }
 
     synchronized public void sendStoreCompleteToClient(){
+        timer.cancel();
+        System.out.println("STORE COMPLETE: Stopping timeout timer");
         out.println("STORE_COMPLETE");
     }
     
     synchronized public void sendRemoveCompleteToClient(){
+        timer.cancel();
+        System.out.println("REMOVE COMPLETE: Stopping timeout timer");
         out.println("REMOVE_COMPLETE");
     }
 

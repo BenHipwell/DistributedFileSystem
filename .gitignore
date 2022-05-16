@@ -8,3 +8,5 @@ test.txt
 dstore2/
 
 dstore3/
+
+*.log

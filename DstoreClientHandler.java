@@ -9,6 +9,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class DstoreClientHandler extends Thread {
     private Socket clientSocket;
@@ -17,6 +19,9 @@ public class DstoreClientHandler extends Thread {
     private BufferedReader in;
 
     private boolean closed;
+
+    private Timer timer;
+    private TimerTask  task;
 
     public DstoreClientHandler(Socket clientSocket, Dstore dstore){
         System.out.println("DSTORE SYSTEM: Starting client socket");
@@ -60,6 +65,7 @@ public class DstoreClientHandler extends Thread {
 
             System.out.println("DSTORE SYSTEM: Sending ACK");
             out.println("ACK");
+            
             handleFile(words[1],Integer.parseInt(words[2]));
 
         } else if (words[0].equals("LOAD_DATA") && words.length == 2){

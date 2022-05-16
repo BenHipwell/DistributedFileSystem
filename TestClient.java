@@ -39,11 +39,11 @@ public class TestClient {
             this.out = new PrintWriter(this.socket.getOutputStream(), true);
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
-            testStore(filesize, data, file, "file1");
-            synchronized(this){
-                wait(5000);
-            }
             testStore(filesize, data, file, "file2");
+            // synchronized(this){
+            //     wait(5000);
+            // }
+            // testStore(filesize, data, file, "file2");
 
             // testStore(filesize, data, file, "file2");
 
@@ -100,6 +100,12 @@ public class TestClient {
                                 System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
 
                                 if (line2.equals("ACK")){
+                                    try {
+                                        sleep(4000);
+                                    } catch (InterruptedException e) {
+                                        // TODO Auto-generated catch block
+                                        e.printStackTrace();
+                                    }
                                     BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
                                     input.read(data,0,data.length);
                                     System.out.println("TESTCLIENT: Sending file of size " + filesize);

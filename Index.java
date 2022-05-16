@@ -58,6 +58,10 @@ public class Index {
         }
     }
 
+    public void removeIndexEntry(String fileName){
+        index.remove(fileName);
+    }
+
     public IndexEntry getEntry(String fileName){
         return index.get(fileName);
     }

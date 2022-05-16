@@ -16,7 +16,7 @@ public class Controller {
     
     private int cport;
     private int rFactor;
-    private double timeout;
+    public double timeout;
     private int rebalancePeriod;
 
     private ServerSocket serverSocket;
@@ -52,15 +52,7 @@ public class Controller {
         fileNameToReq = new ConcurrentHashMap<>(); 
         currentDstoreFiles = new ConcurrentHashMap<>(); 
 
-        //after first timeout
-        
-
-        // timer = new Timer();
-
         resetTimer();
-
-        // firstRebalance = true;
-        // startRebalance();
 
         index = new Index(rebalanceThread);
  
@@ -68,17 +60,6 @@ public class Controller {
             try {
                 serverSocket = new ServerSocket(cport);
                 System.out.println("Server socket open: " + !serverSocket.isClosed());
-
-                Runtime.getRuntime().addShutdownHook(new Thread((new Runnable() {
-                    public void run(){
-                        try {
-                            serverSocket.close();
-                        } catch (IOException e) {
-                            System.out.println("Error thrown on closing server socket");
-                            e.printStackTrace();
-                        }
-                    }
-                })));
                 
                 start();
             } catch (IOException e) {
@@ -110,8 +91,6 @@ public class Controller {
     }
 
     private void resetTimer(){
-        // if (timer != null) timer.purge();
-        // if (task != null) task.cancel();
         task = new TimerTask() {
             public void run(){
                 firstRebalance = true;
@@ -119,15 +98,6 @@ public class Controller {
             }
         };
         timer = new Timer();
-        // if (!firstRebalance){
-        //     timer.schedule(task, rebalancePeriod * 1000);
-        //     // try {
-        //     //     Thread.sleep(rebalancePeriod * 1000);
-        //     // } catch (InterruptedException e) {
-        //     //     // TODO Auto-generated catch block
-        //     //     e.printStackTrace();
-        //     // }
-        // } else 
         timer.scheduleAtFixedRate(task, rebalancePeriod * 1000,rebalancePeriod * 1000);
     }
 
@@ -140,7 +110,6 @@ public class Controller {
 
     public void removeDstore(int port){
         portToStoreEnd.remove(port);
-        startRebalance();
     }
 
     public boolean addNewFile(String fileName, int fileSize){
@@ -186,9 +155,16 @@ public class Controller {
         fileNameToReq.put(fileName, new StoreRequest(clientEndpoint, entry.getDstorePorts()));
     }
 
+    public void deleteFileIndex(String fileName, ControllerClientHandler clientEndpoint){
+        index.removeIndexEntry(fileName);
+        fileNameToReq.remove(fileName);
+    }
+
     public void removeAck(int port, String fileName){
-        index.getEntry(fileName).removeDstore(port);
-        checkRemoveComplete(fileName);
+        if (index.getFiles().contains(fileName)){
+            index.getEntry(fileName).removeDstore(port);
+            checkRemoveComplete(fileName);
+        }
     }
 
     public void checkRemoveComplete(String fileName){
@@ -205,8 +181,10 @@ public class Controller {
     }
 
     public void dstoreAck(int port, String fileName){
-        index.getEntry(fileName).addDstore(port);
-        checkStoreComplete(fileName);
+        if (index.getFiles().contains(fileName)){
+            index.getEntry(fileName).addDstore(port);
+            checkStoreComplete(fileName);
+        }
     }
 
     private void checkStoreComplete(String fileName){
@@ -218,7 +196,6 @@ public class Controller {
             fileNameToReq.remove(fileName);
             synchronized (storeRequest.getClientEndpoint()){
                 storeRequest.getClientEndpoint().sendStoreCompleteToClient();
-                startRebalance();
             }
         }
     }

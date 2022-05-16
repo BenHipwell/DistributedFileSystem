@@ -14,7 +14,7 @@ public class Dstore {
 
     private int port;
     private int cport;
-    private double timeout;
+    public double timeout;
     private String folderName;
 
     private ServerSocket clientServerSocket;
