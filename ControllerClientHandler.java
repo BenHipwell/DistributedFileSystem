@@ -58,7 +58,7 @@ public class ControllerClientHandler extends Thread {
             this.interrupt();
 
         } catch (IOException e) {
-            if (dstorePort > 0){
+            if (dstorePort != 0){
                 controller.removeDstore(dstorePort);
             } else e.printStackTrace();
         }
@@ -118,19 +118,17 @@ public class ControllerClientHandler extends Thread {
 
     private void handleStoreOperation(String[] words){
 
-        if (controller.firstRebalance){
+        if (controller.firstRebalance && controller.getRebalanceThread() != null){
             do {
-                if (controller.getRebalanceThread() != null){
                     if (controller.getRebalanceThread().isAlive()){
                         try {
                             System.out.println("CONTROLLER: WAITING FOR REBALANCE TO FINISH");
-                            sleep(500);
+                            sleep(100);
                         } catch (InterruptedException e) {
                             // TODO Auto-generated catch block
                             e.printStackTrace();
                         }
                     }
-                }
             } while (controller.getRebalanceThread().isAlive());
         }
 
@@ -152,13 +150,24 @@ public class ControllerClientHandler extends Thread {
             ControllerClientHandler thisHandler = this;
             task = new TimerTask() {
                 public void run(){
-                    System.out.println("CONTROLLER TIMEOUT");
+                    System.out.println("STORE TIMEOUT");
                     controller.deleteFileIndex(fileName, thisHandler);
 
                 }
             };
             timer = new Timer();
             timer.schedule(task, (long) controller.timeout);
+
+            synchronized (this){
+                try {
+                    wait();
+                    sendStoreCompleteToClient();
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            
 
             // try {
             //     clientSocket.setSoTimeout((int) controller.timeout);
@@ -178,42 +187,56 @@ public class ControllerClientHandler extends Thread {
         } else if (port == -2){
             out.println("ERROR_LOAD");
         } else {
-            out.println("LOAD_FROM " + port + controller.getFileSize(words[1]));
+            out.println("LOAD_FROM " + port + " " + controller.getFileSize(words[1]));
         }
 
     }
 
     private void handleRemoveOperation(String[] words){
-        do {
-            if (controller.getRebalanceThread() != null){
-                if (controller.getRebalanceThread().isAlive()){
-                    try {
-                        System.out.println("CONTROLLER: WAITING FOR REBALANCE TO FINISH");
-                        sleep(500);
-                    } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+        if (controller.firstRebalance && controller.getRebalanceThread() != null){
+            do {
+                    if (controller.getRebalanceThread().isAlive()){
+                        try {
+                            System.out.println("CONTROLLER: WAITING FOR REBALANCE TO FINISH");
+                            sleep(100);
+                        } catch (InterruptedException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
                     }
-                }
-            }
-        } while (controller.getRebalanceThread() != null);
-
-        String fileName = words[1];
-        try {
-            controller.removeFile(fileName, this);
-        } catch (Exception e) {
-            out.println("ERROR_FILE_DOES_NOT_EXIST");
+            } while (controller.getRebalanceThread().isAlive());
         }
 
-        ControllerClientHandler thisHandler = this;
-        task = new TimerTask() {
-            public void run(){
-                System.out.println("CONTROLLER TIMEOUT");
-                controller.deleteFileIndex(fileName, thisHandler);
+        String fileName = words[1];
+        // try {
+        //     controller.removeFile(fileName, this);
+        // } catch (Exception e) {
+        //     out.println("ERROR_FILE_DOES_NOT_EXIST");
+        // }
+
+        if (controller.removeFile(fileName, this)){
+            ControllerClientHandler thisHandler = this;
+            task = new TimerTask() {
+                public void run(){
+                    System.out.println("REMOVE TIMEOUT");
+                    controller.deleteFileIndex(fileName, thisHandler);
+                }
+            };
+            timer = new Timer();
+            timer.schedule(task, (long) controller.timeout);
+
+            synchronized (this){
+                try {
+                    wait();
+                    sendRemoveCompleteToClient();
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
             }
-        };
-        timer = new Timer();
-        timer.schedule(task, (long) controller.timeout);
+        } else {
+            out.println("ERROR_FILE_DOES_NOT_EXIST");
+        }
 
     }
 
@@ -222,13 +245,13 @@ public class ControllerClientHandler extends Thread {
         out.println("REMOVE " + fileName);
     }
 
-    synchronized public void sendStoreCompleteToClient(){
+    public void sendStoreCompleteToClient(){
         timer.cancel();
         System.out.println("STORE COMPLETE: Stopping timeout timer");
         out.println("STORE_COMPLETE");
     }
     
-    synchronized public void sendRemoveCompleteToClient(){
+    public void sendRemoveCompleteToClient(){
         timer.cancel();
         System.out.println("REMOVE COMPLETE: Stopping timeout timer");
         out.println("REMOVE_COMPLETE");

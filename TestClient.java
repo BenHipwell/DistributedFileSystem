@@ -31,7 +31,7 @@ public class TestClient {
         this.timeout = timeout;
 
         try {
-            File file = new File("/home/ben/Documents/DistributedFileSystem/test.txt");
+            File file = new File("/home/ben/Documents/DistributedFileSystem/soton.jpg");
             int filesize = (int) file.length();
             byte[] data = new byte [filesize];
 
@@ -39,10 +39,15 @@ public class TestClient {
             this.out = new PrintWriter(this.socket.getOutputStream(), true);
             this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
-            testStore(filesize, data, file, "file2");
-            // synchronized(this){
-            //     wait(5000);
-            // }
+            testStore(filesize, data, file, "soton.jpg");
+            
+
+            synchronized(this){
+                wait(5000);
+            }
+            this.out.println("REMOVE soton.jpg");
+            String line = in.readLine();
+            System.out.println("SYSTEM: YO CLIENT RECEIVED " + line);
             // testStore(filesize, data, file, "file2");
 
             // testStore(filesize, data, file, "file2");
@@ -100,12 +105,6 @@ public class TestClient {
                                 System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
 
                                 if (line2.equals("ACK")){
-                                    try {
-                                        sleep(4000);
-                                    } catch (InterruptedException e) {
-                                        // TODO Auto-generated catch block
-                                        e.printStackTrace();
-                                    }
                                     BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
                                     input.read(data,0,data.length);
                                     System.out.println("TESTCLIENT: Sending file of size " + filesize);

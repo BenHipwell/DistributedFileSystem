@@ -39,6 +39,10 @@ public class IndexEntry {
         return status == IndexEntryStatus.STORE_COMPLETE || status == IndexEntryStatus.REMOVE_COMPLETE;
     }
 
+    public boolean isDeleted(){
+        return status == IndexEntryStatus.REMOVE_COMPLETE;
+    }
+
     public void addDstore(Integer dstorePort){
         dstorePorts.add(dstorePort);
     }

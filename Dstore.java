@@ -145,11 +145,7 @@ public class Dstore {
     public String getFolderName(){
         return folderName;
     }
-
-    // public int getNumFiles(){
-    //     return fileNames.size();
-    // }
-
+    
     private ArrayList<String> getFileList(){
         ArrayList<String> fileList = new ArrayList<>();
         
@@ -165,6 +161,7 @@ public class Dstore {
     }
 
     private void removeFile(String fileName){
+        System.out.println("DSTORE " +  port + ": REMOVING " + fileName);
         File file = new File(folderName + File.separator + fileName);
         if (file.exists()){
             file.delete();

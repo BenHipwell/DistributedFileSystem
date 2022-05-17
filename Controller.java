@@ -141,8 +141,9 @@ public class Controller {
         
     }
 
-    public void removeFile(String fileName, ControllerClientHandler clientEndpoint){
+    public boolean removeFile(String fileName, ControllerClientHandler clientEndpoint){
         IndexEntry entry = index.getEntry(fileName);
+        if (entry.isDeleted()) return false;
         entry.setRemoveInProgress();
 
         for (Integer i : entry.getDstorePorts()){
@@ -153,6 +154,7 @@ public class Controller {
         }
 
         fileNameToReq.put(fileName, new StoreRequest(clientEndpoint, entry.getDstorePorts()));
+        return true;
     }
 
     public void deleteFileIndex(String fileName, ControllerClientHandler clientEndpoint){
@@ -160,7 +162,7 @@ public class Controller {
         fileNameToReq.remove(fileName);
     }
 
-    public void removeAck(int port, String fileName){
+    synchronized public void removeAck(int port, String fileName){
         if (index.getFiles().contains(fileName)){
             index.getEntry(fileName).removeDstore(port);
             checkRemoveComplete(fileName);
@@ -175,7 +177,8 @@ public class Controller {
             index.completeRemove(fileName);
             fileNameToReq.remove(fileName);
             synchronized (request.getClientEndpoint()){
-                request.getClientEndpoint().sendRemoveCompleteToClient();
+                // request.getClientEndpoint().sendRemoveCompleteToClient();
+                request.getClientEndpoint().notify();
             }
         }
     }
@@ -195,7 +198,8 @@ public class Controller {
             index.completeStore(fileName);
             fileNameToReq.remove(fileName);
             synchronized (storeRequest.getClientEndpoint()){
-                storeRequest.getClientEndpoint().sendStoreCompleteToClient();
+                // storeRequest.getClientEndpoint().sendStoreCompleteToClient();
+                storeRequest.getClientEndpoint().notify();
             }
         }
     }
@@ -251,6 +255,15 @@ public class Controller {
     private void startRebalance(){
         System.out.println("CONTROLLER: STARTING REBALANCE from thread: " + Thread.currentThread().getName());
         if (firstRebalance){
+            if (index.inProgressTransation()){
+                try {
+                    System.out.println("REBALANCE: Transaction in progress, waiting...");
+                    wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
             ArrayList<Integer> dstorePorts = new ArrayList<>();
             if (!portToStoreEnd.isEmpty()){
                 timer.cancel();
@@ -280,14 +293,14 @@ public class Controller {
 
     public void rebalance(){
         
-        if (index.inProgressTransation()){
-            try {
-                System.out.println("REBALANCE: Transaction in progress, waiting...");
-                wait();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        // if (index.inProgressTransation()){
+        //     try {
+        //         System.out.println("REBALANCE: Transaction in progress, waiting...");
+        //         wait();
+        //     } catch (InterruptedException e) {
+        //         e.printStackTrace();
+        //     }
+        // }
 
         int minFiles = Math.floorDiv(rFactor, getDstoreCount());
         int maxFiles = (int) Math.ceil((double) rFactor / getDstoreCount());
@@ -305,15 +318,6 @@ public class Controller {
 
         HashMap<String,ArrayList<Integer>> fileNameToNewDstorePort = new HashMap<>();
         HashMap<Integer,ArrayList<String>> dstoreToNewFiles = new HashMap<>();
-
-        //NEED TO ACTUALLY GET VALUES TO POPULATE THIS
-        // ConcurrentHashMap<Integer,ArrayList<String>> currentDstoreFiles = new ConcurrentHashMap<>();
-    
-        // for (Integer port : dstorePorts){
-        //    synchronized (portToStoreEnd.get(port)){
-        //         currentDstoreFiles.put(port, portToStoreEnd.get(port).sendListMessageToDstore());
-        //     }
-        // }
 
         //round robin allocation
         System.out.println("INDEX FILES: ");
@@ -415,24 +419,6 @@ public class Controller {
                         }
                     }
                 }
-
-                // if (supposedFiles.size() > 0){
-                // //specify files to be removed
-                // for (String currentFile : currentFiles){
-                //     if (!supposedFiles.contains(currentFile)){
-                //         filesToRemove.add(currentFile);
-                //         //and update current map
-                //         if (dstoreToNewFiles.containsKey(port)){
-                //             currentDstoreFiles.get(port).remove(currentFile);
-                //         }
-                //     }
-                // }
-                // } else {
-                //     for (String f : currentFiles){
-                //         filesToRemove.add(f);
-                //         currentDstoreFiles.get(port).remove(f);
-                //     }
-                // }
 
                 //send those files
                     //make rebalance message
