@@ -162,46 +162,58 @@ public class Controller {
         fileNameToReq.remove(fileName);
     }
 
-    synchronized public void removeAck(int port, String fileName){
+    public void removeAck(int port, String fileName){
         if (index.getFiles().contains(fileName)){
+            StoreRequest request = fileNameToReq.get(fileName);
+            synchronized (request.getClientEndpoint()){
+                request.getClientEndpoint().notify();
+            }
+            System.out.println("Removing dstore store from index");
             index.getEntry(fileName).removeDstore(port);
-            checkRemoveComplete(fileName);
+            // checkRemoveComplete(fileName);
         }
     }
 
-    public void checkRemoveComplete(String fileName){
-        StoreRequest request = fileNameToReq.get(fileName);
+    public boolean checkRemoveComplete(String fileName){
+        // StoreRequest request = fileNameToReq.get(fileName);
         // System.out.println("CONTROLLER: Checking if " + fileName + " removal is complete ");
 
         if (index.getEntry(fileName).getDstorePorts().size() == 0){
             index.completeRemove(fileName);
             fileNameToReq.remove(fileName);
-            synchronized (request.getClientEndpoint()){
-                // request.getClientEndpoint().sendRemoveCompleteToClient();
-                request.getClientEndpoint().notify();
-            }
-        }
+            return true;
+            // synchronized (request.getClientEndpoint()){
+            //     // request.getClientEndpoint().sendRemoveCompleteToClient();
+            //     request.getClientEndpoint().notify();
+            // }
+        } else return false;
     }
 
     public void dstoreAck(int port, String fileName){
         if (index.getFiles().contains(fileName)){
+            StoreRequest storeRequest = fileNameToReq.get(fileName);
+            synchronized (storeRequest.getClientEndpoint()){
+                storeRequest.getClientEndpoint().notify();
+            }
+            System.out.println("Adding dstore store to index");
             index.getEntry(fileName).addDstore(port);
-            checkStoreComplete(fileName);
+            // checkStoreComplete(fileName);
         }
     }
 
-    private void checkStoreComplete(String fileName){
-        StoreRequest storeRequest = fileNameToReq.get(fileName);
+    public boolean checkStoreComplete(String fileName){
+        // StoreRequest storeRequest = fileNameToReq.get(fileName);
         // System.out.println("CONTROLLER: Checking if " + fileName + " storage is complete ");
 
         if (index.getEntry(fileName).getDstorePorts().size() == getDstoreCount()){
             index.completeStore(fileName);
             fileNameToReq.remove(fileName);
-            synchronized (storeRequest.getClientEndpoint()){
-                // storeRequest.getClientEndpoint().sendStoreCompleteToClient();
-                storeRequest.getClientEndpoint().notify();
-            }
-        }
+            return true;
+            // synchronized (storeRequest.getClientEndpoint()){
+            //     // storeRequest.getClientEndpoint().sendStoreCompleteToClient();
+            //     storeRequest.getClientEndpoint().notify();
+            // }
+        } else return false;
     }
 
     public int getDstoreStroringFile(String fileName, int dstoreIndex){

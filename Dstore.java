@@ -28,9 +28,9 @@ public class Dstore {
     private BufferedReader in;
 
     public static void main(String[] args){
-        if (args.length == 4){
+        // if (args.length == 4){
             new Dstore(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Double.parseDouble(args[2]), args[3]);
-        }
+        // }
     }
 
     public Dstore(int port, int cport, double timeout, String foldername){
@@ -42,6 +42,7 @@ public class Dstore {
         fileNames = new ArrayList<>();
         receivingClosed = false;
         initFolder();
+        // System.out.println("FOLDER INIT DONE");
 
         try {
             clientServerSocket = new ServerSocket(port);
@@ -54,18 +55,18 @@ public class Dstore {
 
             this.out.println("JOIN" + " " + this.port);
 
-            Runtime.getRuntime().addShutdownHook(new Thread((new Runnable() {
-                public void run(){
-                    try {
-                        clientServerSocket.close();
-                        controllerSocket.close();
-                    } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        // System.out.println("Error thrown on closing server socket");
-                        e.printStackTrace();
-                    }
-                }
-            })));
+            // Runtime.getRuntime().addShutdownHook(new Thread((new Runnable() {
+            //     public void run(){
+            //         try {
+            //             clientServerSocket.close();
+            //             controllerSocket.close();
+            //         } catch (IOException e) {
+            //             // TODO Auto-generated catch block
+            //             // System.out.println("Error thrown on closing server socket");
+            //             e.printStackTrace();
+            //         }
+            //     }
+            // })));
             
             startClientServerSocket();
         } catch (IOException e) {
@@ -139,6 +140,7 @@ public class Dstore {
     }
 
     public void sendStoreAck(String fileName){
+        System.out.println("STORE ACK");
         this.out.println("STORE_ACK " + fileName);
     }
 

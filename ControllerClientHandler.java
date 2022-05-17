@@ -146,24 +146,33 @@ public class ControllerClientHandler extends Thread {
                 response = response + " " + port;
             }
     
-            out.println(response);
+            
             ControllerClientHandler thisHandler = this;
-            task = new TimerTask() {
-                public void run(){
-                    System.out.println("STORE TIMEOUT");
-                    controller.deleteFileIndex(fileName, thisHandler);
 
-                }
-            };
-            timer = new Timer();
 
+            boolean storeComplete = false;
             //think the timeout is for each STORE_ACK not for full store complete!!
             synchronized (this){
                 try {
-                    timer.schedule(task, (long) controller.timeout);
-                    wait();
-                    timer.cancel();
-                    sendStoreCompleteToClient();
+                    while (!storeComplete){
+                        task = new TimerTask() {
+                            public void run(){
+                                System.out.println("STORE TIMEOUT");
+                                controller.deleteFileIndex(fileName, thisHandler);
+                            }
+                        };
+                        timer = new Timer();
+                        out.println(response);
+                        timer.schedule(task, (long) controller.timeout);
+                        wait();
+                        task.cancel();
+                        timer.cancel();
+                        storeComplete = controller.checkStoreComplete(fileName);
+                        System.out.println("STORE COMPLETE: " + storeComplete);
+                    }
+                    
+                    // timer.purge();
+                    out.println("STORE_COMPLETE");
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -218,20 +227,35 @@ public class ControllerClientHandler extends Thread {
 
         if (controller.removeFile(fileName, this)){
             ControllerClientHandler thisHandler = this;
-            task = new TimerTask() {
-                public void run(){
-                    System.out.println("REMOVE TIMEOUT");
-                    controller.deleteFileIndex(fileName, thisHandler);
-                }
-            };
-            timer = new Timer();
+            // task = new TimerTask() {
+            //     public void run(){
+            //         System.out.println("REMOVE TIMEOUT");
+            //         controller.deleteFileIndex(fileName, thisHandler);
+            //     }
+            // };
+            // timer = new Timer();
+
+            boolean removeComplete = false;
 
             synchronized (this){
                 try {
-                    timer.schedule(task, (long) controller.timeout);
-                    wait();
-                    timer.cancel();
-                    sendRemoveCompleteToClient();
+                    while (!removeComplete){
+                        task = new TimerTask() {
+                            public void run(){
+                                System.out.println("REMOVE TIMEOUT");
+                                controller.deleteFileIndex(fileName, thisHandler);
+                            }
+                        };
+                        timer = new Timer();
+                        timer.schedule(task, (long) controller.timeout);
+                        wait();
+                        task.cancel();
+                        timer.cancel();
+                        removeComplete = controller.checkRemoveComplete(fileName);
+                        System.out.println("REMOVE COMPLETE: " + removeComplete);
+                    }
+                    
+                    out.println("REMOVE_COMPLETE");
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -248,17 +272,17 @@ public class ControllerClientHandler extends Thread {
         out.println("REMOVE " + fileName);
     }
 
-    public void sendStoreCompleteToClient(){
-        // timer.cancel();
-        // System.out.println("STORE COMPLETE: Stopping timeout timer");
-        out.println("STORE_COMPLETE");
-    }
+    // public void sendStoreCompleteToClient(){
+    //     // timer.cancel();
+    //     // System.out.println("STORE COMPLETE: Stopping timeout timer");
+    //     out.println("STORE_COMPLETE");
+    // }
     
-    public void sendRemoveCompleteToClient(){
-        // timer.cancel();
-        // System.out.println("REMOVE COMPLETE: Stopping timeout timer");
-        out.println("REMOVE_COMPLETE");
-    }
+    // public void sendRemoveCompleteToClient(){
+    //     // timer.cancel();
+    //     // System.out.println("REMOVE COMPLETE: Stopping timeout timer");
+    //     out.println("REMOVE_COMPLETE");
+    // }
 
     synchronized public void sendRebalanceMessage(String message){
         out.println(message);

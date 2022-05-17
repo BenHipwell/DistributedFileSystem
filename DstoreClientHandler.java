@@ -40,7 +40,7 @@ public class DstoreClientHandler extends Thread {
                 String inputLine;
 
                 if ((inputLine = in.readLine()) != null){
-                    // System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
+                    System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
                     interpretInput(inputLine);
                 }
             }
@@ -63,7 +63,7 @@ public class DstoreClientHandler extends Thread {
 
         if (words[0].equals("STORE") && words.length == 3){
 
-            // System.out.println("DSTORE SYSTEM: Sending ACK");
+            System.out.println("ACK");
             out.println("ACK");
 
             handleFile(words[1],Integer.parseInt(words[2]));
@@ -81,7 +81,7 @@ public class DstoreClientHandler extends Thread {
     }
 
     private void handleFile(String fileName, int fileSize){
-
+        System.out.println("FILE HANDLE");
         byte[] data = new byte[fileSize];
 
         int bytesRead = 0;
