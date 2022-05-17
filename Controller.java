@@ -59,7 +59,7 @@ public class Controller {
         
             try {
                 serverSocket = new ServerSocket(cport);
-                System.out.println("Server socket open: " + !serverSocket.isClosed());
+                // System.out.println("Server socket open: " + !serverSocket.isClosed());
                 
                 start();
             } catch (IOException e) {
@@ -69,7 +69,7 @@ public class Controller {
 
 
     public void start(){
-        System.out.println("Starting");
+        // System.out.println("Starting");
         while (true){
             //add: if num of dstores >= rFactor
             try {
@@ -147,7 +147,7 @@ public class Controller {
         entry.setRemoveInProgress();
 
         for (Integer i : entry.getDstorePorts()){
-            System.out.println("SYSTEM: REMOVING FILE FROM " + i);
+            // System.out.println("SYSTEM: REMOVING FILE FROM " + i);
             synchronized (portToStoreEnd.get(i)){
                 portToStoreEnd.get(i).sendRemoveToDstore(fileName);
             }
@@ -171,7 +171,7 @@ public class Controller {
 
     public void checkRemoveComplete(String fileName){
         StoreRequest request = fileNameToReq.get(fileName);
-        System.out.println("CONTROLLER: Checking if " + fileName + " removal is complete ");
+        // System.out.println("CONTROLLER: Checking if " + fileName + " removal is complete ");
 
         if (index.getEntry(fileName).getDstorePorts().size() == 0){
             index.completeRemove(fileName);
@@ -192,7 +192,7 @@ public class Controller {
 
     private void checkStoreComplete(String fileName){
         StoreRequest storeRequest = fileNameToReq.get(fileName);
-        System.out.println("CONTROLLER: Checking if " + fileName + " storage is complete ");
+        // System.out.println("CONTROLLER: Checking if " + fileName + " storage is complete ");
 
         if (index.getEntry(fileName).getDstorePorts().size() == getDstoreCount()){
             index.completeStore(fileName);
@@ -253,11 +253,11 @@ public class Controller {
     }
 
     private void startRebalance(){
-        System.out.println("CONTROLLER: STARTING REBALANCE from thread: " + Thread.currentThread().getName());
+        // System.out.println("CONTROLLER: STARTING REBALANCE from thread: " + Thread.currentThread().getName());
         if (firstRebalance){
             if (index.inProgressTransation()){
                 try {
-                    System.out.println("REBALANCE: Transaction in progress, waiting...");
+                    // System.out.println("REBALANCE: Transaction in progress, waiting...");
                     wait();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
@@ -305,7 +305,7 @@ public class Controller {
         int minFiles = Math.floorDiv(rFactor, getDstoreCount());
         int maxFiles = (int) Math.ceil((double) rFactor / getDstoreCount());
 
-        System.out.println("CONTROLLER: REBALANCING, min=" + minFiles + " max=" + maxFiles);
+        // System.out.println("CONTROLLER: REBALANCING, min=" + minFiles + " max=" + maxFiles);
 
         //use LIST
         //round robin, create completely new organisation
@@ -320,7 +320,7 @@ public class Controller {
         HashMap<Integer,ArrayList<String>> dstoreToNewFiles = new HashMap<>();
 
         //round robin allocation
-        System.out.println("INDEX FILES: ");
+        // System.out.println("INDEX FILES: ");
         for (String file : index.getFiles()){
             System.out.println(file);
         }
@@ -350,7 +350,7 @@ public class Controller {
                 }
                 newFiles.add(file);
                 dstoreToNewFiles.put(thisDstore, newFiles);
-                System.out.println("DSTORE TO FILE MAP: " + thisDstore + " index: " + dstoreIndex + " new files: ");
+                // System.out.println("DSTORE TO FILE MAP: " + thisDstore + " index: " + dstoreIndex + " new files: ");
                 for (String s : newFiles){
                     System.out.println(s);
                 }
@@ -445,7 +445,7 @@ public class Controller {
                 }
 
                     //send it
-                System.out.println("Store " + port + " message = " + rebalanceMessage);
+                // System.out.println("Store " + port + " message = " + rebalanceMessage);
 
 
                 synchronized (portToStoreEnd.get(port)){

@@ -45,7 +45,7 @@ public class Dstore {
 
         try {
             clientServerSocket = new ServerSocket(port);
-            System.out.println("Server socket open: " + !clientServerSocket.isClosed());
+            // System.out.println("Server socket open: " + !clientServerSocket.isClosed());
 
             controllerSocket = new Socket(InetAddress.getLoopbackAddress(), this.cport);
 
@@ -61,7 +61,7 @@ public class Dstore {
                         controllerSocket.close();
                     } catch (IOException e) {
                         // TODO Auto-generated catch block
-                        System.out.println("Error thrown on closing server socket");
+                        // System.out.println("Error thrown on closing server socket");
                         e.printStackTrace();
                     }
                 }
@@ -76,7 +76,7 @@ public class Dstore {
     }
 
     public void startClientServerSocket(){
-        System.out.println("Starting");
+        // System.out.println("Starting");
         Dstore dstore = this;
 
         Thread acceptingThread = new Thread(){
@@ -104,12 +104,12 @@ public class Dstore {
                     String inputLine;
     
                     if ((inputLine = in.readLine()) != null){
-                        System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
+                        // System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
                         interpretInput(inputLine);
                     }
                 }
                 
-                System.out.println("DSTORE SYSTEM: CLOSING");
+                // System.out.println("DSTORE SYSTEM: CLOSING");
     
                 in.close();
                 out.close();
@@ -132,7 +132,7 @@ public class Dstore {
             for (String file : getFileList()){
                 response = response + " " + file;
             }
-            System.out.println("DSTORE " + port + " list: " + response);
+            // System.out.println("DSTORE " + port + " list: " + response);
             out.println(response);
         }
             
@@ -161,7 +161,7 @@ public class Dstore {
     }
 
     private void removeFile(String fileName){
-        System.out.println("DSTORE " +  port + ": REMOVING " + fileName);
+        // System.out.println("DSTORE " +  port + ": REMOVING " + fileName);
         File file = new File(folderName + File.separator + fileName);
         if (file.exists()){
             file.delete();
@@ -216,15 +216,15 @@ public class Dstore {
                                     out2.println("REBALANCE_STORE " + fileName + " " + filesize);
     
                                     String line2 = in2.readLine();
-                                    System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
+                                    // System.out.println("SYSTEM: CLIENT RECEIVED " + line2);
     
                                     if (line2.equals("ACK")){
                                         BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
                                         input.read(data,0,filesize);
-                                        System.out.println("DSTORE: Sending file of size " + filesize);
+                                        // System.out.println("DSTORE: Sending file of size " + filesize);
                                         dsocket.getOutputStream().write(data,0,filesize);
                                         dsocket.getOutputStream().flush();
-                                        System.out.println("DSTORE: File sent");
+                                        // System.out.println("DSTORE: File sent");
                                         input.close();
                                     }
                                     out2.close();

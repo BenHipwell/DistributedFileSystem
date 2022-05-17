@@ -25,7 +25,7 @@ public class ControllerClientHandler extends Thread {
     private boolean closed;
 
     public ControllerClientHandler(Socket clientSocket, Controller controller){
-        System.out.println("CONTROLLER SYSTEM: Starting client socket");
+        // System.out.println("CONTROLLER SYSTEM: Starting client socket");
         this.clientSocket = clientSocket;
         this.controller = controller;
         closed = false;
@@ -42,7 +42,7 @@ public class ControllerClientHandler extends Thread {
             while(!closed){
 
                 if ((inputLine = in.readLine()) != null){
-                    System.out.println("CONTROLLER SYSTEM: RECEIEVED = " + inputLine);
+                    // System.out.println("CONTROLLER SYSTEM: RECEIEVED = " + inputLine);
                     interpretInput(inputLine);
                 }
             }
@@ -107,7 +107,7 @@ public class ControllerClientHandler extends Thread {
                 receiveFileList(words);
                 inputLine = "";
             } else {
-                System.out.println("UH OH");
+                // System.out.println("UH OH");
                 //Handle invalid request
             }
         // } else {
@@ -156,11 +156,13 @@ public class ControllerClientHandler extends Thread {
                 }
             };
             timer = new Timer();
-            timer.schedule(task, (long) controller.timeout);
 
+            //think the timeout is for each STORE_ACK not for full store complete!!
             synchronized (this){
                 try {
+                    timer.schedule(task, (long) controller.timeout);
                     wait();
+                    timer.cancel();
                     sendStoreCompleteToClient();
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
@@ -223,11 +225,12 @@ public class ControllerClientHandler extends Thread {
                 }
             };
             timer = new Timer();
-            timer.schedule(task, (long) controller.timeout);
 
             synchronized (this){
                 try {
+                    timer.schedule(task, (long) controller.timeout);
                     wait();
+                    timer.cancel();
                     sendRemoveCompleteToClient();
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
@@ -241,19 +244,19 @@ public class ControllerClientHandler extends Thread {
     }
 
     synchronized public void sendRemoveToDstore(String fileName){
-        System.out.println("CONTROLLER: SENDING REMOVE TO DSTORE " + fileName);
+        // System.out.println("CONTROLLER: SENDING REMOVE TO DSTORE " + fileName);
         out.println("REMOVE " + fileName);
     }
 
     public void sendStoreCompleteToClient(){
-        timer.cancel();
-        System.out.println("STORE COMPLETE: Stopping timeout timer");
+        // timer.cancel();
+        // System.out.println("STORE COMPLETE: Stopping timeout timer");
         out.println("STORE_COMPLETE");
     }
     
     public void sendRemoveCompleteToClient(){
-        timer.cancel();
-        System.out.println("REMOVE COMPLETE: Stopping timeout timer");
+        // timer.cancel();
+        // System.out.println("REMOVE COMPLETE: Stopping timeout timer");
         out.println("REMOVE_COMPLETE");
     }
 
@@ -270,12 +273,12 @@ public class ControllerClientHandler extends Thread {
     private void receiveFileList(String[] words){
         ArrayList<String> fileList = new ArrayList<>();
 
-        System.out.println("READLINE 2");
+        // System.out.println("READLINE 2");
         // String[] words = line.split(" ");
                 
         if (words[0].equals("LIST")){
             for (int i = 1; i < words.length; i++){
-                System.out.print("CONTROLLER: Dstore " + dstorePort + " has file: " + words[i]);
+                // System.out.print("CONTROLLER: Dstore " + dstorePort + " has file: " + words[i]);
                 fileList.add(words[i]);
             }
         }

@@ -16,7 +16,7 @@ public class Index {
 
     public Boolean addNewEntry(String fileName, int fileSize){
         if (!index.containsKey(fileName)){
-            System.out.println("INDEX: Adding file: " + fileName);
+            // System.out.println("INDEX: Adding file: " + fileName);
             index.put(fileName, new IndexEntry(fileSize));
             return true;
         } else return false;
@@ -44,7 +44,7 @@ public class Index {
         index.get(fileName).setStoreComplete();
 
         if (!inProgressTransation() && rebalanceThread != null){
-            System.out.print("INDEX: Store done, notifying rebalance thread");
+            // System.out.print("INDEX: Store done, notifying rebalance thread");
             rebalanceThread.notify();
         }
     }
@@ -53,7 +53,7 @@ public class Index {
         index.get(fileName).setRemoveComplete();
 
         if (!inProgressTransation() && rebalanceThread != null){
-            System.out.print("INDEX: Remove done, notifying rebalance thread");
+            // System.out.print("INDEX: Remove done, notifying rebalance thread");
             rebalanceThread.notify();
         }
     }

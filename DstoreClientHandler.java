@@ -24,7 +24,7 @@ public class DstoreClientHandler extends Thread {
     private TimerTask  task;
 
     public DstoreClientHandler(Socket clientSocket, Dstore dstore){
-        System.out.println("DSTORE SYSTEM: Starting client socket");
+        // System.out.println("DSTORE SYSTEM: Starting client socket");
         this.clientSocket = clientSocket;
         this.dstore = dstore;
         closed = false;
@@ -40,12 +40,12 @@ public class DstoreClientHandler extends Thread {
                 String inputLine;
 
                 if ((inputLine = in.readLine()) != null){
-                    System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
+                    // System.out.println("DSTORE SYSTEM: RECEIEVED = " + inputLine);
                     interpretInput(inputLine);
                 }
             }
             
-            System.out.println("DSTORE SYSTEM: CLOSING");
+            // System.out.println("DSTORE SYSTEM: CLOSING");
 
             in.close();
             out.close();
@@ -63,15 +63,15 @@ public class DstoreClientHandler extends Thread {
 
         if (words[0].equals("STORE") && words.length == 3){
 
-            System.out.println("DSTORE SYSTEM: Sending ACK");
+            // System.out.println("DSTORE SYSTEM: Sending ACK");
             out.println("ACK");
-            
+
             handleFile(words[1],Integer.parseInt(words[2]));
 
         } else if (words[0].equals("LOAD_DATA") && words.length == 2){
-            System.out.println("DSTORE SYSTEM: LOAD COMMAND DETECTED ");
+            // System.out.println("DSTORE SYSTEM: LOAD COMMAND DETECTED ");
 
-            System.out.println("DSTORE SYSTEM: Sending file " + words[1]);
+            // System.out.println("DSTORE SYSTEM: Sending file " + words[1]);
             sendFile(words[1]);
             
             
@@ -97,12 +97,12 @@ public class DstoreClientHandler extends Thread {
                     if (bytesRead >= 0){
                         current += bytesRead;
                     }
-                    System.out.println("DSTORE SYSTEM: Downloading file " + bytesRead + "/" + fileSize);
+                    // System.out.println("DSTORE SYSTEM: Downloading file " + bytesRead + "/" + fileSize);
                 } while (bytesRead < fileSize);
 
                 outputStream.write(data,0,current);
                 outputStream.flush();
-                System.out.println("DSTORE SYSTEM: File  " + fileName + " downloaded");
+                // System.out.println("DSTORE SYSTEM: File  " + fileName + " downloaded");
 
                 dstore.sendStoreAck(fileName);
 
@@ -124,10 +124,10 @@ public class DstoreClientHandler extends Thread {
 
                 BufferedInputStream input = new BufferedInputStream(new FileInputStream(file));
                 input.read(data,0,data.length);
-                System.out.println("DSTORE: Sending file of size " + filesize);
+                // System.out.println("DSTORE: Sending file of size " + filesize);
                 clientSocket.getOutputStream().write(data,0,filesize);
                 clientSocket.getOutputStream().flush();
-                System.out.println("DSTORE: File sent");
+                // System.out.println("DSTORE: File sent");
                 input.close();
                 
             } catch (IOException e) {
