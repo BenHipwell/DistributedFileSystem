@@ -14,9 +14,9 @@ public class Index {
         this.rebalanceThread = rebalanceThread;
     }
 
-    public Boolean addNewEntry(String fileName, int fileSize){
+    synchronized public Boolean addNewEntry(String fileName, int fileSize){
         if (!index.containsKey(fileName)){
-            // System.out.println("INDEX: Adding file: " + fileName);
+            System.out.println("INDEX: Adding file: " + fileName);
             index.put(fileName, new IndexEntry(fileSize));
             return true;
         } else return false;

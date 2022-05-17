@@ -7,6 +7,7 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.spi.CurrencyNameProvider;
 
 public class ControllerClientHandler extends Thread {
     private Socket clientSocket;
@@ -39,10 +40,12 @@ public class ControllerClientHandler extends Thread {
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             // clientSocket.setSoTimeout(controller.timeout);
 
+            currentThread().setName("client" + controller.getClientCount());
+
             while(!closed){
 
                 if ((inputLine = in.readLine()) != null){
-                    // System.out.println("CONTROLLER SYSTEM: RECEIEVED = " + inputLine);
+                    System.out.println(currentThread().getName() + "-CONTROLLER SYSTEM: RECEIEVED = " + inputLine);
                     interpretInput(inputLine);
                 }
             }
@@ -85,6 +88,7 @@ public class ControllerClientHandler extends Thread {
 
             } else if (words[0].equals("JOIN") && words.length == 2){
                 dstorePort = Integer.parseInt(words[1]);
+                currentThread().setName("dstore"+dstorePort);
                 controller.addDstore(dstorePort, this);
 
             } else if (words[0].equals("STORE_ACK") && words.length == 2){
@@ -122,7 +126,7 @@ public class ControllerClientHandler extends Thread {
             do {
                     if (controller.getRebalanceThread().isAlive()){
                         try {
-                            System.out.println("CONTROLLER: WAITING FOR REBALANCE TO FINISH");
+                            System.out.println(currentThread().getName() + "-CONTROLLER: WAITING FOR REBALANCE TO FINISH");
                             sleep(100);
                         } catch (InterruptedException e) {
                             // TODO Auto-generated catch block
@@ -136,6 +140,7 @@ public class ControllerClientHandler extends Thread {
         int fileSize = Integer.parseInt(words[2]);
             
         if (!controller.addNewFile(fileName, fileSize)){
+            System.out.println(currentThread().getName() + "-FILE ALREADY EXISTS " + fileName);
             out.println("ERROR_FILE_ALREADY_EXISTS");
             
         } else {
@@ -146,46 +151,35 @@ public class ControllerClientHandler extends Thread {
                 response = response + " " + port;
             }
     
-            
             ControllerClientHandler thisHandler = this;
-
-
             boolean storeComplete = false;
-            //think the timeout is for each STORE_ACK not for full store complete!!
+
             synchronized (this){
                 try {
+                    out.println(response);
+
                     while (!storeComplete){
                         task = new TimerTask() {
                             public void run(){
-                                System.out.println("STORE TIMEOUT");
+                                System.out.println(currentThread().getName() + "-STORE TIMEOUT");
                                 controller.deleteFileIndex(fileName, thisHandler);
                             }
                         };
                         timer = new Timer();
-                        out.println(response);
                         timer.schedule(task, (long) controller.timeout);
                         wait();
                         task.cancel();
                         timer.cancel();
                         storeComplete = controller.checkStoreComplete(fileName);
-                        System.out.println("STORE COMPLETE: " + storeComplete);
+                        System.out.println(currentThread().getName() + "-STORE COMPLETE: " + storeComplete);
                     }
                     
-                    // timer.purge();
                     out.println("STORE_COMPLETE");
+                    System.out.println(currentThread().getName() + "-sent store complete");
                 } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
             }
-            
-
-            // try {
-            //     clientSocket.setSoTimeout((int) controller.timeout);
-            // } catch (SocketException e) {
-            //     System.out.println("TIMEOUT!");
-            //     controller.deleteFileIndex(fileName, this);
-            // }
 
         }
     }
@@ -208,7 +202,7 @@ public class ControllerClientHandler extends Thread {
             do {
                     if (controller.getRebalanceThread().isAlive()){
                         try {
-                            System.out.println("CONTROLLER: WAITING FOR REBALANCE TO FINISH");
+                            System.out.println(currentThread().getName() + "-CONTROLLER: WAITING FOR REBALANCE TO FINISH");
                             sleep(100);
                         } catch (InterruptedException e) {
                             // TODO Auto-generated catch block
@@ -219,51 +213,42 @@ public class ControllerClientHandler extends Thread {
         }
 
         String fileName = words[1];
-        // try {
-        //     controller.removeFile(fileName, this);
-        // } catch (Exception e) {
-        //     out.println("ERROR_FILE_DOES_NOT_EXIST");
-        // }
-
-        if (controller.removeFile(fileName, this)){
-            ControllerClientHandler thisHandler = this;
-            // task = new TimerTask() {
-            //     public void run(){
-            //         System.out.println("REMOVE TIMEOUT");
-            //         controller.deleteFileIndex(fileName, thisHandler);
-            //     }
-            // };
-            // timer = new Timer();
 
             boolean removeComplete = false;
 
-            synchronized (this){
-                try {
-                    while (!removeComplete){
-                        task = new TimerTask() {
-                            public void run(){
-                                System.out.println("REMOVE TIMEOUT");
-                                controller.deleteFileIndex(fileName, thisHandler);
+            
+                ControllerClientHandler thisHandler = this;
+                if (controller.canRemoveFile(fileName, this)){
+                    try {
+                        synchronized (this){
+
+                            controller.removeFile(fileName);
+
+                            while (!removeComplete){
+                                task = new TimerTask() {
+                                    public void run(){
+                                        System.out.println(currentThread().getName() + "-REMOVE TIMEOUT");
+                                            controller.deleteFileIndex(fileName, thisHandler);
+                                    }
+                                };
+                                timer = new Timer();
+                                    timer.schedule(task, (long) controller.timeout);
+                                    wait();
+                                    task.cancel();
+                                    timer.cancel();
+                                    removeComplete = controller.checkRemoveComplete(fileName);
+                                    System.out.println(currentThread().getName() + "-REMOVE COMPLETE: " + removeComplete);
                             }
-                        };
-                        timer = new Timer();
-                        timer.schedule(task, (long) controller.timeout);
-                        wait();
-                        task.cancel();
-                        timer.cancel();
-                        removeComplete = controller.checkRemoveComplete(fileName);
-                        System.out.println("REMOVE COMPLETE: " + removeComplete);
+                            
+                            out.println("REMOVE_COMPLETE");
+                        }
+                    } catch (InterruptedException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
                     }
-                    
-                    out.println("REMOVE_COMPLETE");
-                } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
+            } else {
+                out.println("ERROR_FILE_DOES_NOT_EXIST");
             }
-        } else {
-            out.println("ERROR_FILE_DOES_NOT_EXIST");
-        }
 
     }
 

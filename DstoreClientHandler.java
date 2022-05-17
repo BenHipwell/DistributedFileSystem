@@ -71,7 +71,7 @@ public class DstoreClientHandler extends Thread {
         } else if (words[0].equals("LOAD_DATA") && words.length == 2){
             // System.out.println("DSTORE SYSTEM: LOAD COMMAND DETECTED ");
 
-            // System.out.println("DSTORE SYSTEM: Sending file " + words[1]);
+            System.out.println("DSTORE SYSTEM: Sending file " + words[1]);
             sendFile(words[1]);
             
             
@@ -110,7 +110,6 @@ public class DstoreClientHandler extends Thread {
 
         } catch (Exception e) {
             e.printStackTrace();
-            this.interrupt();
         }
     }
 
@@ -127,12 +126,11 @@ public class DstoreClientHandler extends Thread {
                 // System.out.println("DSTORE: Sending file of size " + filesize);
                 clientSocket.getOutputStream().write(data,0,filesize);
                 clientSocket.getOutputStream().flush();
-                // System.out.println("DSTORE: File sent");
+                System.out.println("DSTORE: File sent");
                 input.close();
                 
             } catch (IOException e) {
                 e.printStackTrace();
-                this.interrupt();
             }
         }
 

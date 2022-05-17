@@ -169,7 +169,7 @@ public class Dstore {
             file.delete();
             out.println("REMOVE_ACK " + fileName);
         } else {
-            out.println("ERROR_FILE_DOES_NOT_EXIST" + fileName);
+            out.println("ERROR_FILE_DOES_NOT_EXIST " + fileName);
         }
     }
 

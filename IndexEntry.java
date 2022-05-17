@@ -51,6 +51,10 @@ public class IndexEntry {
         dstorePorts.remove(dstorePort);
     }
 
+    public boolean isStoreComplete(){
+        return status == IndexEntryStatus.STORE_COMPLETE;
+    }
+
     public ArrayList<Integer> getDstorePorts(){
         return dstorePorts;
     }

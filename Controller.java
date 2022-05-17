@@ -112,11 +112,11 @@ public class Controller {
         portToStoreEnd.remove(port);
     }
 
-    public boolean addNewFile(String fileName, int fileSize){
+    synchronized public boolean addNewFile(String fileName, int fileSize){
         return index.addNewEntry(fileName, fileSize);
     }
 
-    public ArrayList<Integer> handleStoreRequest(String fileName, ControllerClientHandler clientEndpoint){
+    synchronized public ArrayList<Integer> handleStoreRequest(String fileName, ControllerClientHandler clientEndpoint){
         ArrayList<Integer> allocatedDstorePorts = new ArrayList<>();
 
         try {
@@ -141,10 +141,18 @@ public class Controller {
         
     }
 
-    public boolean removeFile(String fileName, ControllerClientHandler clientEndpoint){
+    synchronized public boolean canRemoveFile(String fileName, ControllerClientHandler clientEndpoint){
         IndexEntry entry = index.getEntry(fileName);
-        if (entry.isDeleted()) return false;
-        entry.setRemoveInProgress();
+        if (entry.isStoreComplete()){
+            entry.setRemoveInProgress();
+            fileNameToReq.put(fileName, new StoreRequest(clientEndpoint, entry.getDstorePorts()));
+            return true;
+        } else return false;
+    }
+
+    public void removeFile(String fileName){
+        IndexEntry entry = index.getEntry(fileName);
+        // entry.setRemoveInProgress();
 
         for (Integer i : entry.getDstorePorts()){
             // System.out.println("SYSTEM: REMOVING FILE FROM " + i);
@@ -153,13 +161,13 @@ public class Controller {
             }
         }
 
-        fileNameToReq.put(fileName, new StoreRequest(clientEndpoint, entry.getDstorePorts()));
-        return true;
     }
 
     public void deleteFileIndex(String fileName, ControllerClientHandler clientEndpoint){
-        index.removeIndexEntry(fileName);
-        fileNameToReq.remove(fileName);
+        if (index.inProgressTransation()){
+            index.removeIndexEntry(fileName);
+            fileNameToReq.remove(fileName);
+        }
     }
 
     public void removeAck(int port, String fileName){
@@ -190,12 +198,12 @@ public class Controller {
     }
 
     public void dstoreAck(int port, String fileName){
-        if (index.getFiles().contains(fileName)){
+        if (index.getFiles().contains(fileName) && !index.getEntry(fileName).getDstorePorts().contains(port)){
             StoreRequest storeRequest = fileNameToReq.get(fileName);
             synchronized (storeRequest.getClientEndpoint()){
                 storeRequest.getClientEndpoint().notify();
             }
-            System.out.println("Adding dstore store to index");
+            // System.out.println("Adding dstore store to index");
             index.getEntry(fileName).addDstore(port);
             // checkStoreComplete(fileName);
         }
@@ -205,6 +213,7 @@ public class Controller {
         // StoreRequest storeRequest = fileNameToReq.get(fileName);
         // System.out.println("CONTROLLER: Checking if " + fileName + " storage is complete ");
 
+        // if (index.getEntry(fileName).getDstorePorts().size() == getDstoreCount()){
         if (index.getEntry(fileName).getDstorePorts().size() == getDstoreCount()){
             index.completeStore(fileName);
             fileNameToReq.remove(fileName);
