@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -21,7 +20,7 @@ public class DstoreClientHandler extends Thread {
     private boolean closed;
 
     private Timer timer;
-    private TimerTask  task;
+    private TimerTask task;
 
     public DstoreClientHandler(Socket clientSocket, Dstore dstore){
         // System.out.println("DSTORE SYSTEM: Starting client socket");
@@ -81,7 +80,7 @@ public class DstoreClientHandler extends Thread {
     }
 
     private void handleFile(String fileName, int fileSize){
-        System.out.println("FILE HANDLE");
+        // System.out.println("FILE HANDLE");
         byte[] data = new byte[fileSize];
 
         int bytesRead = 0;

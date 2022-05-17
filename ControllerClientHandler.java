@@ -3,11 +3,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.spi.CurrencyNameProvider;
 
 public class ControllerClientHandler extends Thread {
     private Socket clientSocket;
@@ -38,7 +36,6 @@ public class ControllerClientHandler extends Thread {
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            // clientSocket.setSoTimeout(controller.timeout);
 
             currentThread().setName("client" + controller.getClientCount());
 
@@ -79,6 +76,7 @@ public class ControllerClientHandler extends Thread {
 
             } else if (words[0].equals("LOAD") && words.length == 2){
                 if (controller.enoughDstores()){
+                    dstoreIndex = 0;
                     handleLoadOperation(words);
                 } else out.println("ERROR_NOT_ENOUGH_DSTORES");
 
@@ -111,12 +109,8 @@ public class ControllerClientHandler extends Thread {
                 receiveFileList(words);
                 inputLine = "";
             } else {
-                // System.out.println("UH OH");
-                //Handle invalid request
+                //Handle invalid request?
             }
-        // } else {
-        //     out.println("ERROR_NOT_ENOUGH_DSTORES");
-        // }
         inputLine = "";
     }
 
@@ -129,7 +123,6 @@ public class ControllerClientHandler extends Thread {
                             System.out.println(currentThread().getName() + "-CONTROLLER: WAITING FOR REBALANCE TO FINISH");
                             sleep(100);
                         } catch (InterruptedException e) {
-                            // TODO Auto-generated catch block
                             e.printStackTrace();
                         }
                     }
@@ -186,12 +179,16 @@ public class ControllerClientHandler extends Thread {
 
     private void handleLoadOperation(String[] words){
         int port = controller.getDstoreStroringFile(words[1],dstoreIndex);
+        System.out.println("LOAD OPERATION, Port: " + port);
 
         if (port == -1){
+            // System.out.print(currentThread().getName() + "-SENDING: " + "ERROR_FILE_DOES_NOT_EXIST");
             out.println("ERROR_FILE_DOES_NOT_EXIST");
         } else if (port == -2){
+            // System.out.print(currentThread().getName() + "-SENDING: " + "ERROR_LOAD");
             out.println("ERROR_LOAD");
         } else {
+            // System.out.print(currentThread().getName() + "-SENDING: " + "LOAD_FROM " + port + " " + controller.getFileSize(words[1]));
             out.println("LOAD_FROM " + port + " " + controller.getFileSize(words[1]));
         }
 
@@ -213,37 +210,35 @@ public class ControllerClientHandler extends Thread {
         }
 
         String fileName = words[1];
-
-            boolean removeComplete = false;
-
             
                 ControllerClientHandler thisHandler = this;
                 if (controller.canRemoveFile(fileName, this)){
                     try {
                         synchronized (this){
 
-                            controller.removeFile(fileName);
+                            ArrayList<Integer> ports = controller.getIndexEntry(fileName).getDstorePorts();
 
-                            while (!removeComplete){
+                            for (int i = 0; i < ports.size(); i++){
                                 task = new TimerTask() {
                                     public void run(){
                                         System.out.println(currentThread().getName() + "-REMOVE TIMEOUT");
-                                            controller.deleteFileIndex(fileName, thisHandler);
+                                        controller.deleteFileIndex(fileName, thisHandler);
+                                        return;
                                     }
                                 };
                                 timer = new Timer();
-                                    timer.schedule(task, (long) controller.timeout);
-                                    wait();
-                                    task.cancel();
-                                    timer.cancel();
-                                    removeComplete = controller.checkRemoveComplete(fileName);
-                                    System.out.println(currentThread().getName() + "-REMOVE COMPLETE: " + removeComplete);
+                                timer.schedule(task, (long) controller.timeout);
+                                controller.sendRemoveToDstore(ports.get(i), fileName);
+                                wait();
+                                task.cancel();
+                                timer.cancel();
                             }
-                            
+
+
                             out.println("REMOVE_COMPLETE");
+                            controller.removeComplete(fileName);
                         }
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
                         e.printStackTrace();
                     }
             } else {
@@ -257,18 +252,6 @@ public class ControllerClientHandler extends Thread {
         out.println("REMOVE " + fileName);
     }
 
-    // public void sendStoreCompleteToClient(){
-    //     // timer.cancel();
-    //     // System.out.println("STORE COMPLETE: Stopping timeout timer");
-    //     out.println("STORE_COMPLETE");
-    // }
-    
-    // public void sendRemoveCompleteToClient(){
-    //     // timer.cancel();
-    //     // System.out.println("REMOVE COMPLETE: Stopping timeout timer");
-    //     out.println("REMOVE_COMPLETE");
-    // }
-
     synchronized public void sendRebalanceMessage(String message){
         out.println(message);
     }
@@ -281,9 +264,6 @@ public class ControllerClientHandler extends Thread {
 
     private void receiveFileList(String[] words){
         ArrayList<String> fileList = new ArrayList<>();
-
-        // System.out.println("READLINE 2");
-        // String[] words = line.split(" ");
                 
         if (words[0].equals("LIST")){
             for (int i = 1; i < words.length; i++){

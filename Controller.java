@@ -1,16 +1,11 @@
 import java.io.IOException;
-import java.lang.reflect.Array;
-import java.net.Inet4Address;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.swing.plaf.multi.MultiTableHeaderUI;
 
 public class Controller {
     
@@ -36,9 +31,9 @@ public class Controller {
     private TimerTask task;
 
     public static void main(String[] args){
-        if (args.length == 4){
+        if (args.length >= 4){
             new Controller(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Double.parseDouble(args[2]), Integer.parseInt(args[3]));
-        }
+        } else System.out.println("Invalid controller arguments");
     }   
 
     public Controller(int cport, int rFactor, double timeout, int rebalancePeriod){
@@ -71,7 +66,6 @@ public class Controller {
     public void start(){
         // System.out.println("Starting");
         while (true){
-            //add: if num of dstores >= rFactor
             try {
                 ControllerClientHandler clientHandler = new ControllerClientHandler(serverSocket.accept(), this);
                 clients.add(clientHandler);
@@ -110,6 +104,7 @@ public class Controller {
 
     public void removeDstore(int port){
         portToStoreEnd.remove(port);
+        currentDstoreFiles.remove(port);
     }
 
     synchronized public boolean addNewFile(String fileName, int fileSize){
@@ -120,50 +115,41 @@ public class Controller {
         ArrayList<Integer> allocatedDstorePorts = new ArrayList<>();
 
         try {
-            // index.addNewEntry(fileName);
-            //allocate dstores
-            //update index entry dstore list
-
-            //temp allocating all dstores
             for (Integer i : portToStoreEnd.keySet()){
                 allocatedDstorePorts.add(i);
             }
 
             fileNameToReq.put(fileName, new StoreRequest(clientEndpoint, allocatedDstorePorts));
-
             return allocatedDstorePorts;
-
 
         } catch (Exception e) {
             e.printStackTrace();
         } 
         return allocatedDstorePorts;
-        
     }
 
     synchronized public boolean canRemoveFile(String fileName, ControllerClientHandler clientEndpoint){
-        IndexEntry entry = index.getEntry(fileName);
-        if (entry.isStoreComplete()){
-            entry.setRemoveInProgress();
-            fileNameToReq.put(fileName, new StoreRequest(clientEndpoint, entry.getDstorePorts()));
-            return true;
+        if (index.getFiles().contains(fileName)){
+            IndexEntry entry = index.getEntry(fileName);
+            if (entry.isStoreComplete()){
+                entry.setRemoveInProgress();
+                fileNameToReq.put(fileName, new StoreRequest(clientEndpoint, entry.getDstorePorts()));
+                return true;
+            } else return false;
         } else return false;
+        
     }
 
-    public void removeFile(String fileName){
-        IndexEntry entry = index.getEntry(fileName);
-        // entry.setRemoveInProgress();
-
-        for (Integer i : entry.getDstorePorts()){
-            // System.out.println("SYSTEM: REMOVING FILE FROM " + i);
-            synchronized (portToStoreEnd.get(i)){
-                portToStoreEnd.get(i).sendRemoveToDstore(fileName);
-            }
-        }
-
+    synchronized public void sendRemoveToDstore(int port, String fileName){
+        index.getEntry(fileName).setRemoveInProgress();
+        portToStoreEnd.get(port).sendRemoveToDstore(fileName);
     }
 
-    public void deleteFileIndex(String fileName, ControllerClientHandler clientEndpoint){
+    public IndexEntry getIndexEntry(String fileName){
+        return index.getEntry(fileName);
+    }
+
+    synchronized public void deleteFileIndex(String fileName, ControllerClientHandler clientEndpoint){
         if (index.inProgressTransation()){
             index.removeIndexEntry(fileName);
             fileNameToReq.remove(fileName);
@@ -178,23 +164,12 @@ public class Controller {
             }
             System.out.println("Removing dstore store from index");
             index.getEntry(fileName).removeDstore(port);
-            // checkRemoveComplete(fileName);
         }
     }
 
-    public boolean checkRemoveComplete(String fileName){
-        // StoreRequest request = fileNameToReq.get(fileName);
-        // System.out.println("CONTROLLER: Checking if " + fileName + " removal is complete ");
-
-        if (index.getEntry(fileName).getDstorePorts().size() == 0){
+    synchronized public void removeComplete(String fileName){
             index.completeRemove(fileName);
             fileNameToReq.remove(fileName);
-            return true;
-            // synchronized (request.getClientEndpoint()){
-            //     // request.getClientEndpoint().sendRemoveCompleteToClient();
-            //     request.getClientEndpoint().notify();
-            // }
-        } else return false;
     }
 
     public void dstoreAck(int port, String fileName){
@@ -203,50 +178,37 @@ public class Controller {
             synchronized (storeRequest.getClientEndpoint()){
                 storeRequest.getClientEndpoint().notify();
             }
-            // System.out.println("Adding dstore store to index");
             index.getEntry(fileName).addDstore(port);
-            // checkStoreComplete(fileName);
         }
     }
 
     public boolean checkStoreComplete(String fileName){
-        // StoreRequest storeRequest = fileNameToReq.get(fileName);
         // System.out.println("CONTROLLER: Checking if " + fileName + " storage is complete ");
-
-        // if (index.getEntry(fileName).getDstorePorts().size() == getDstoreCount()){
         if (index.getEntry(fileName).getDstorePorts().size() == getDstoreCount()){
             index.completeStore(fileName);
             fileNameToReq.remove(fileName);
             return true;
-            // synchronized (storeRequest.getClientEndpoint()){
-            //     // storeRequest.getClientEndpoint().sendStoreCompleteToClient();
-            //     storeRequest.getClientEndpoint().notify();
-            // }
         } else return false;
     }
 
     public int getDstoreStroringFile(String fileName, int dstoreIndex){
         IndexEntry entry;
         try {
-                entry = index.getEntry(fileName);
+            entry = index.getEntry(fileName);
 
-                if (dstoreIndex < entry.getDstorePorts().size()){
-                    return entry.getDstorePorts().get(dstoreIndex);
-                } else return -2;
-        
+            if (dstoreIndex < entry.getDstorePorts().size()){
+                return entry.getDstorePorts().get(dstoreIndex);
+            } else return -2;
         } catch (Exception e){
                 return -1;
         }
-
     }
 
     public String getFileList(){
         String list = "";
-
         for (var f : index.getFiles()){
             list = list + " " + f;
         }
-
         return list;
     }
 
@@ -291,15 +253,11 @@ public class Controller {
                 dstorePorts.addAll(portToStoreEnd.keySet());
 
                 for (Integer port : dstorePorts){
-                    // synchronized (portToStoreEnd.get(port)){
-                    //      currentDstoreFiles.put(port, portToStoreEnd.get(port).sendListMessageToDstore());
-                    //  }
                     synchronized (portToStoreEnd.get(port)){
                             portToStoreEnd.get(port).sendListMessageToDstore();
                         }
                 }
             }
-            // resetTimer();
         }
     }
 
@@ -313,23 +271,10 @@ public class Controller {
     }
 
     public void rebalance(){
-        
-        // if (index.inProgressTransation()){
-        //     try {
-        //         System.out.println("REBALANCE: Transaction in progress, waiting...");
-        //         wait();
-        //     } catch (InterruptedException e) {
-        //         e.printStackTrace();
-        //     }
-        // }
-
         int minFiles = Math.floorDiv(rFactor, getDstoreCount());
         int maxFiles = (int) Math.ceil((double) rFactor / getDstoreCount());
 
         // System.out.println("CONTROLLER: REBALANCING, min=" + minFiles + " max=" + maxFiles);
-
-        //use LIST
-        //round robin, create completely new organisation
 
         ArrayList<Integer> dstorePorts = new ArrayList<>();
         dstorePorts.addAll(portToStoreEnd.keySet());
@@ -402,7 +347,6 @@ public class Controller {
                     }
                 } else {
                     supposedFiles = new ArrayList<>();
-                    // dstoreToNewFiles.put(port, currentDstoreFiles.get(port));
                     if (currentDstoreFiles.containsKey(port)){
                         currentFiles = currentDstoreFiles.get(port);
                     } else currentFiles = new ArrayList<>();
@@ -441,8 +385,7 @@ public class Controller {
                     }
                 }
 
-                //send those files
-                    //make rebalance message
+                //make rebalance message
                 String rebalanceMessage = "REBALANCE " + filesToSend.size();
 
                 if (filesToSend.size() > 0){
@@ -454,8 +397,6 @@ public class Controller {
                     }
                 }
 
-                // rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
-
                 if (filesToRemove.size() > 0){
                     rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
                     for (String file : filesToRemove){
@@ -465,17 +406,14 @@ public class Controller {
                     rebalanceMessage = rebalanceMessage + " " + filesToRemove.size();
                 }
 
-                    //send it
+                //send it
                 // System.out.println("Store " + port + " message = " + rebalanceMessage);
-
-
                 synchronized (portToStoreEnd.get(port)){
                     portToStoreEnd.get(port).sendRebalanceMessage(rebalanceMessage);
                 }
                 
             }
     }
-
         currentDstoreFiles.clear();
         resetTimer();
     }

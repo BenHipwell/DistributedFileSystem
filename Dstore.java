@@ -20,17 +20,15 @@ public class Dstore {
     private ServerSocket clientServerSocket;
     private Socket controllerSocket;
 
-    private ArrayList<String> fileNames;
-
     private boolean receivingClosed;
 
     private PrintWriter out;
     private BufferedReader in;
 
     public static void main(String[] args){
-        // if (args.length == 4){
+        if (args.length >= 4){
             new Dstore(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Double.parseDouble(args[2]), args[3]);
-        // }
+        } System.out.println("Insufficient dstore arguments");
     }
 
     public Dstore(int port, int cport, double timeout, String foldername){
@@ -39,10 +37,8 @@ public class Dstore {
         this.timeout = timeout;
         this.folderName = foldername;
 
-        fileNames = new ArrayList<>();
         receivingClosed = false;
         initFolder();
-        // System.out.println("FOLDER INIT DONE");
 
         try {
             clientServerSocket = new ServerSocket(port);
@@ -54,23 +50,9 @@ public class Dstore {
             this.in = new BufferedReader(new InputStreamReader(controllerSocket.getInputStream()));
 
             this.out.println("JOIN" + " " + this.port);
-
-            // Runtime.getRuntime().addShutdownHook(new Thread((new Runnable() {
-            //     public void run(){
-            //         try {
-            //             clientServerSocket.close();
-            //             controllerSocket.close();
-            //         } catch (IOException e) {
-            //             // TODO Auto-generated catch block
-            //             // System.out.println("Error thrown on closing server socket");
-            //             e.printStackTrace();
-            //         }
-            //     }
-            // })));
             
             startClientServerSocket();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
@@ -83,7 +65,6 @@ public class Dstore {
         Thread acceptingThread = new Thread(){
             public void run(){
                 while (true){
-                    //add: if num of dstores >= rFactor
                     try {
                         DstoreClientHandler dstoreClientHandler = new DstoreClientHandler(clientServerSocket.accept(), dstore);
                         dstoreClientHandler.start();
@@ -155,7 +136,6 @@ public class Dstore {
 
         if (folderPath.isDirectory()){
             for (File f : folderPath.listFiles()){
-                //this getName might be an issue
                 fileList.add(f.getName());
             }
         }
